@@ -157,6 +157,51 @@ const CERTIFICATE_CONFIG = {
   }
 };
 
+const SERVICE_ACCENTS = {
+  BIRTH_CERTIFICATE: {
+    color: '#3b82f6',
+    bg: 'rgba(59, 130, 246, 0.08)',
+    border: 'rgba(59, 130, 246, 0.2)',
+    gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+    glow: 'rgba(59, 130, 246, 0.15)'
+  },
+  DEATH_CERTIFICATE: {
+    color: '#6366f1',
+    bg: 'rgba(99, 102, 241, 0.08)',
+    border: 'rgba(99, 102, 241, 0.2)',
+    gradient: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)',
+    glow: 'rgba(99, 102, 241, 0.15)'
+  },
+  INCOME_CERTIFICATE: {
+    color: '#10b981',
+    bg: 'rgba(16, 185, 129, 0.08)',
+    border: 'rgba(16, 185, 129, 0.2)',
+    gradient: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+    glow: 'rgba(16, 185, 129, 0.15)'
+  },
+  RESIDENCE_CERTIFICATE: {
+    color: '#f59e0b',
+    bg: 'rgba(245, 158, 11, 0.08)',
+    border: 'rgba(245, 158, 11, 0.2)',
+    gradient: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)',
+    glow: 'rgba(245, 158, 11, 0.15)'
+  },
+  TRADE_LICENSE: {
+    color: '#8b5cf6',
+    bg: 'rgba(139, 92, 246, 0.08)',
+    border: 'rgba(139, 92, 246, 0.2)',
+    gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+    glow: 'rgba(139, 92, 246, 0.15)'
+  },
+  PERMIT_APPROVAL: {
+    color: '#f43f5e',
+    bg: 'rgba(244, 63, 94, 0.08)',
+    border: 'rgba(244, 63, 94, 0.2)',
+    gradient: 'linear-gradient(135deg, #f43f5e 0%, #be123c 100%)',
+    glow: 'rgba(244, 63, 94, 0.15)'
+  }
+};
+
 const FORM_STEPS = ['Fill Details', 'Upload Documents', 'Review', 'Submit'];
 
 function UploadCard({ doc, isUploaded, isUploading, uploadErr, fileInfo, onUpload, onPreview, dragOver, onDragOver, onDragLeave, onDrop }) {
@@ -985,82 +1030,131 @@ function ServiceApplicationForm() {
             </div>
 
             {/* Certificates Cards Grid */}
-            <div data-tour="select-service-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 20 }}>
-              {filteredServices.map(([key, svc]) => (
-                <div
-                  key={key}
-                  onClick={() => selectService(key)}
-                  style={{
-                    background: '#ffffff', borderRadius: 16, border: '1.5px solid #e2e8f0',
-                    padding: 20, cursor: 'pointer', transition: 'all 0.15s ease-in-out',
-                    display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                    boxShadow: '0 2px 8px rgba(15,23,42,0.04)'
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.borderColor = '#93c5fd';
-                    e.currentTarget.style.boxShadow = '0 12px 24px rgba(37,99,235,0.08)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.borderColor = '#e2e8f0';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(15,23,42,0.04)';
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
-                      <div style={{
-                        width: 46, height: 46, borderRadius: 12,
-                        background: '#eff6ff', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', fontSize: 22, flexShrink: 0
-                      }}>
-                        {svc.icon}
-                      </div>
-                      {svc.badge && (
-                        <span style={{
-                          background: '#dcfce7', color: '#15803d', fontSize: 10,
-                          fontWeight: 800, padding: '3px 8px', borderRadius: 20,
-                          letterSpacing: '0.05em'
-                        }}>
-                          {svc.badge}
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 6px', lineHeight: 1.3 }}>
-                      {svc.label}
-                    </h3>
-                    <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px', lineHeight: 1.5 }}>
-                      {svc.description}
-                    </p>
-                  </div>
-
-                  <div>
+            <div data-tour="select-service-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}>
+              {filteredServices.map(([key, svc]) => {
+                const accent = SERVICE_ACCENTS[key] || SERVICE_ACCENTS.BIRTH_CERTIFICATE;
+                return (
+                  <div
+                    key={key}
+                    onClick={() => selectService(key)}
+                    style={{
+                      background: 'var(--surface, #ffffff)', 
+                      borderRadius: 20, 
+                      border: '1.5px solid var(--border, #e2e8f0)',
+                      padding: '24px', 
+                      cursor: 'pointer', 
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      justifyContent: 'space-between',
+                      boxShadow: '0 4px 12px rgba(15,23,42,0.03)',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-6px)';
+                      e.currentTarget.style.borderColor = accent.color;
+                      e.currentTarget.style.boxShadow = `0 20px 25px -5px ${accent.glow}, 0 8px 10px -6px ${accent.glow}`;
+                      // Scale icon container
+                      const iconBox = e.currentTarget.querySelector('.tour-icon-box');
+                      if (iconBox) iconBox.style.transform = 'scale(1.1) rotate(4deg)';
+                      // Scale button slightly
+                      const btn = e.currentTarget.querySelector('.tour-apply-btn');
+                      if (btn) {
+                        btn.style.boxShadow = `0 6px 20px ${accent.glow}`;
+                        btn.style.filter = 'brightness(1.05)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.borderColor = 'var(--border, #e2e8f0)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(15,23,42,0.03)';
+                      // Reset icon container
+                      const iconBox = e.currentTarget.querySelector('.tour-icon-box');
+                      if (iconBox) iconBox.style.transform = 'scale(1) rotate(0deg)';
+                      // Reset button
+                      const btn = e.currentTarget.querySelector('.tour-apply-btn');
+                      if (btn) {
+                        btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.06)';
+                        btn.style.filter = 'brightness(1)';
+                      }
+                    }}
+                  >
+                    {/* Subtle top color glow line */}
                     <div style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      paddingTop: 12, borderTop: '1px solid #f1f5f9', fontSize: 12, color: '#475569', fontWeight: 600
-                    }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <Building2 size={13} color="#94a3b8" />
-                        {svc.department}
-                      </span>
-                      <span style={{ color: '#2563eb', fontWeight: 700 }}>
-                        {svc.approvalTime}
-                      </span>
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 4,
+                      background: accent.gradient
+                    }} />
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+                        <div 
+                          className="tour-icon-box"
+                          style={{
+                            width: 48, height: 48, borderRadius: 14,
+                            background: accent.bg, display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', fontSize: 24, flexShrink: 0,
+                            border: `1px solid ${accent.border}`,
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                          }}
+                        >
+                          {svc.icon}
+                        </div>
+                        {svc.badge && (
+                          <span style={{
+                            background: 'rgba(16, 185, 129, 0.1)', color: '#047857', border: '1px solid rgba(16, 185, 129, 0.2)',
+                            fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 20,
+                            letterSpacing: '0.05em', textTransform: 'uppercase'
+                          }}>
+                            {svc.badge}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text, #0f172a)', margin: '0 0 8px', lineHeight: 1.3 }}>
+                        {svc.label}
+                      </h3>
+                      <p style={{ fontSize: 13, color: 'var(--text-secondary, #64748b)', margin: '0 0 20px', lineHeight: 1.5 }}>
+                        {svc.description}
+                      </p>
                     </div>
 
-                    <button style={{
-                      width: '100%', marginTop: 14, padding: '10px 14px', borderRadius: 10,
-                      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#ffffff',
-                      border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      boxShadow: '0 2px 6px rgba(37,99,235,0.2)'
-                    }}>
-                      Apply Now <ChevronRight size={14} />
-                    </button>
+                    <div>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        paddingTop: 14, borderTop: '1px solid var(--border, #f1f5f9)', fontSize: 12, color: 'var(--text, #475569)', fontWeight: 700,
+                        marginBottom: 16
+                      }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <Building2 size={14} color="var(--text-secondary, #94a3b8)" />
+                          {svc.department}
+                        </span>
+                        <span style={{ color: accent.color, fontWeight: 800 }}>
+                          ⏳ {svc.approvalTime}
+                        </span>
+                      </div>
+
+                      <button 
+                        className="tour-apply-btn"
+                        style={{
+                          width: '100%', padding: '12px 14px', borderRadius: 12,
+                          background: accent.gradient, color: '#ffffff',
+                          border: 'none', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        Apply Now <ChevronRight size={15} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
