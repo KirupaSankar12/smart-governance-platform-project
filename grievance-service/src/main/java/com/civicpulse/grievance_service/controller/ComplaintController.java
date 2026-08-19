@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.civicpulse.grievance_service.dto.DuplicateDetectionDTOs.*;
+
 @RestController
 @RequestMapping("/api/complaints")
 public class ComplaintController {
@@ -35,6 +37,48 @@ public class ComplaintController {
         this.complaintRepository = complaintRepository;
         this.complaintService = complaintService;
         this.escalationService = escalationService;
+    }
+
+    // CHECK DUPLICATES — AI multi-factor duplicate check before creating
+    @PostMapping("/check-duplicate")
+    public ResponseEntity<DuplicateCheckResponse> checkDuplicates(@RequestBody DuplicateCheckRequest request) {
+        return ResponseEntity.ok(complaintService.checkDuplicates(request));
+    }
+
+    // LINK COMPLAINT — link duplicate report to primary complaint
+    @PostMapping("/link")
+    public ResponseEntity<Complaint> linkComplaint(@RequestBody LinkComplaintRequest request) {
+        return ResponseEntity.ok(complaintService.linkComplaintToPrimary(request));
+    }
+
+    // GET RELATED COMPLAINTS — list reports linked to primary complaint
+    @GetMapping("/{id}/related")
+    public ResponseEntity<List<Complaint>> getRelatedComplaints(@PathVariable UUID id) {
+        return ResponseEntity.ok(complaintService.getRelatedComplaints(id));
+    }
+
+    // CHECK ACTIVE DUPLICATE — fingerprint-based pre-check (citizen + dept + category + location)
+    @GetMapping("/check-active-duplicate")
+    public ResponseEntity<?> checkActiveDuplicate(
+            @RequestParam String citizenId,
+            @RequestParam String department,
+            @RequestParam String category,
+            @RequestParam String location) {
+        java.util.Optional<Complaint> existing = complaintService.checkActiveDuplicate(citizenId, department, category, location);
+        if (existing.isPresent()) {
+            Complaint c = existing.get();
+            Map<String, Object> result = new java.util.HashMap<>();
+            result.put("duplicate", true);
+            result.put("complaintId", c.getComplaintId());
+            result.put("title", c.getTitle());
+            result.put("department", c.getDepartment());
+            result.put("category", c.getCategory());
+            result.put("location", c.getLocation());
+            result.put("status", c.getStatus());
+            result.put("createdAt", c.getCreatedAt());
+            return ResponseEntity.ok(result);
+        }
+        return ResponseEntity.ok(Map.of("duplicate", false));
     }
 
     // CREATE — defaults status=NEW, calculates SLA, logs first history entry
@@ -167,6 +211,15 @@ public class ComplaintController {
         }
         complaintRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ADMIN — re-embed all active complaints with current embedding provider
+    // Call once after deployment to regenerate stale 128-dim local embeddings.
+    // Safe to call multiple times — already Gemini-embedded complaints are skipped.
+    @PostMapping("/admin/re-embed")
+    public ResponseEntity<Map<String, Integer>> reEmbedActiveComplaints() {
+        Map<String, Integer> result = complaintService.reEmbedActiveComplaints();
+        return ResponseEntity.ok(result);
     }
 
     // TEST UTILITY — manually trigger escalation check without waiting 1 hour

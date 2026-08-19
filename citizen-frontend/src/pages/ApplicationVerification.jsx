@@ -425,9 +425,9 @@ export default function ApplicationVerification() {
                 </div>
                 <button
                   onClick={() => setPreviewDoc(null)}
-                  style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ background: 'rgba(239,68,68,0.1)', border: 'none', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 16 }}
                 >
-                  <X size={18} />
+                  <X size={18} color="#ef4444" />
                 </button>
               </div>
 

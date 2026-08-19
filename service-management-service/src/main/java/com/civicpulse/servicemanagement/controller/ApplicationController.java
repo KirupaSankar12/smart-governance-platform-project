@@ -35,6 +35,17 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.submitApplication(request));
     }
 
+    @GetMapping("/check-duplicate")
+    public ResponseEntity<?> checkDuplicate(
+            @RequestParam String serviceType,
+            @RequestParam String aadhaarNumber) {
+        java.util.Optional<ServiceApplication> existing = applicationService.checkActiveDuplicate(serviceType, aadhaarNumber);
+        if (existing.isPresent()) {
+            return ResponseEntity.ok(Map.of("duplicate", true, "existingApplication", existing.get()));
+        }
+        return ResponseEntity.ok(Map.of("duplicate", false));
+    }
+
     @PutMapping("/resubmit/{id}")
     public ResponseEntity<ServiceApplication> resubmit(
             @PathVariable UUID id,

@@ -65,7 +65,7 @@ function CertificateDownloadCard({ appId, onClose }) {
         {/* Header */}
         <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
           <h2 style={{ margin: '0 0 0.5rem 0', letterSpacing: '2px', color: 'var(--primary-color)', fontSize: '1.5rem', fontWeight: 800 }}>
-            MUNICIPAL CORPORATION OF CIVICPULSE
+            MUNICIPAL CORPORATION OF SMART GOVERNANCE
           </h2>
           <h4 style={{ margin: 0, letterSpacing: '1px', fontSize: '1.1rem', fontWeight: 600 }}>
             GOVERNMENT OF STATE OF BHARAT

@@ -21,7 +21,9 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/complaints/dashboard/stats", "/api/complaints/overdue").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/complaints", "/api/complaints/link", "/api/complaints/check-duplicate").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/complaints/dashboard/stats", "/api/complaints/overdue", "/api/complaints/citizen/**", "/api/complaints/track/**", "/api/complaints/{id}", "/api/complaints/{id}/related").permitAll()
+                .requestMatchers("/api/complaints/admin/re-embed").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

@@ -18,15 +18,45 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
     List<Complaint> findByAssignedOfficer(String assignedOfficer);
     Page<Complaint> findByAssignedOfficer(String assignedOfficer, Pageable pageable);
     
-    java.util.Optional<Complaint> findFirstByCitizenIdAndDepartmentAndTitleAndLocationAndStatusIn(
-            String citizenId, String department, String title, String location, List<ComplaintStatus> statuses);
+    @Query("""
+        SELECT c FROM Complaint c
+        WHERE c.citizenId = :citizenId
+        AND LOWER(TRIM(c.department)) = LOWER(TRIM(:department))
+        AND LOWER(TRIM(c.category)) = LOWER(TRIM(:category))
+        AND LOWER(TRIM(c.location)) = LOWER(TRIM(:location))
+        AND c.status NOT IN :terminalStatuses
+        ORDER BY c.createdAt DESC
+    """)
+    java.util.Optional<Complaint> findActiveDuplicate(
+            @Param("citizenId") String citizenId,
+            @Param("department") String department,
+            @Param("category") String category,
+            @Param("location") String location,
+            @Param("terminalStatuses") List<ComplaintStatus> terminalStatuses);
 
     List<Complaint> findByStatus(ComplaintStatus status);
+    List<Complaint> findByStatusIn(List<ComplaintStatus> statuses);
+    List<Complaint> findByDuplicateOf(UUID duplicateOf);
 
     List<Complaint> findByPriority(Priority priority);
 
     List<Complaint> findByDepartmentIgnoreCase(String department);
     Page<Complaint> findByDepartmentIgnoreCase(String department, Pageable pageable);
+
+    @Query("""
+        SELECT c FROM Complaint c
+        WHERE LOWER(c.department) = LOWER(:dept)
+           OR LOWER(c.department) LIKE LOWER(CONCAT('%', :deptKeyword, '%'))
+           OR LOWER(c.assignedOfficer) = LOWER(:officerName)
+           OR LOWER(c.assignedOfficer) = LOWER(:username)
+        ORDER BY c.createdAt DESC
+    """)
+    Page<Complaint> findByDepartmentOrAssignedOfficer(
+            @Param("dept") String dept,
+            @Param("deptKeyword") String deptKeyword,
+            @Param("officerName") String officerName,
+            @Param("username") String username,
+            Pageable pageable);
 
     List<Complaint> findByLocationContainingIgnoreCase(String locationKeyword);
 

@@ -4,6 +4,7 @@ import App from './App.jsx';
 import keycloak from './keycloak.js';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import FullPagePreloader from './components/FullPagePreloader.jsx';
+import './i18n.js';
 import './index.css';
 
 let initPromise = null;

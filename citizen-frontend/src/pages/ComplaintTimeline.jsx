@@ -39,6 +39,7 @@ function ComplaintTimeline() {
   const roles = keycloak.tokenParsed?.realm_access?.roles || [];
   const isAdmin = roles.includes('admin') || roles.includes('ADMIN');
   const isOfficer = roles.includes('OFFICER') || roles.includes('officer');
+  const isCitizen = roles.includes('CITIZEN') || roles.includes('citizen');
 
   const load = () => {
     api.get(`/grievance-service/api/complaints/${id}`)
@@ -56,6 +57,30 @@ function ComplaintTimeline() {
     setAssignMsg('');
     try {
       await api.put(`/grievance-service/api/complaints/${id}/assign?officerUsername=${encodeURIComponent(assignOfficer)}`);
+      
+      // Notify the assigned officer
+      api.post('/notification-service/api/notifications', {
+        recipient: assignOfficer,
+        title: 'New Complaint Assigned',
+        message: `You have been assigned to complaint ${complaint?.complaintId || id} - ${complaint?.title}`,
+        relatedEntityId: String(complaint?.complaintId || id),
+        relatedEntityType: 'COMPLAINT',
+        eventType: 'complaint-assigned',
+        recipientRole: 'OFFICER'
+      }).catch(() => {});
+
+      // Notify the citizen
+      api.post('/notification-service/api/notifications', {
+        recipient: complaint?.citizenId || 'CIT-001',
+        title: 'Complaint Assigned',
+        message: `Your complaint ${complaint?.title} has been assigned to an officer.`,
+        relatedEntityId: String(complaint?.complaintId || id),
+        relatedEntityType: 'COMPLAINT',
+        eventType: 'complaint-assigned',
+        recipientRole: 'CITIZEN'
+      }).catch(() => {});
+
+      window.dispatchEvent(new Event('refresh-notifications'));
       setAssignMsg('success:Officer assigned successfully.');
       setAssignOfficer('');
       load();
@@ -69,6 +94,32 @@ function ComplaintTimeline() {
     setUpdateMsg('');
     try {
       await api.put(`/grievance-service/api/complaints/${id}/status?status=${newStatus}&remarks=${encodeURIComponent(remarks)}`);
+      
+      const username = keycloak.tokenParsed?.preferred_username || 'officer';
+      
+      // Notify the citizen
+      api.post('/notification-service/api/notifications', {
+        recipient: complaint?.citizenId || 'CIT-001',
+        title: `Complaint Status: ${newStatus}`,
+        message: `Your complaint ${complaint?.title} status has been updated to ${newStatus}. ${remarks ? `Remarks: ${remarks}` : ''}`,
+        relatedEntityId: String(complaint?.complaintId || id),
+        relatedEntityType: 'COMPLAINT',
+        eventType: 'complaint-status-updated',
+        recipientRole: 'CITIZEN'
+      }).catch(() => {});
+
+      // Notify the officer
+      api.post('/notification-service/api/notifications', {
+        recipient: complaint?.assignedOfficer || username,
+        title: `Complaint Status Updated`,
+        message: `Status updated to ${newStatus} for complaint ${complaint?.title}.`,
+        relatedEntityId: String(complaint?.complaintId || id),
+        relatedEntityType: 'COMPLAINT',
+        eventType: 'complaint-status-updated',
+        recipientRole: 'OFFICER'
+      }).catch(() => {});
+
+      window.dispatchEvent(new Event('refresh-notifications'));
       setUpdateMsg('success:Status updated successfully.');
       setRemarks('');
       setNewStatus('');
@@ -96,7 +147,7 @@ function ComplaintTimeline() {
     <AppShell title="Complaint Detail">
       <div className="page-header" style={{ marginBottom: 20 }}>
         <Link 
-          to="/complaints" 
+          to={isOfficer ? "/officer" : "/complaints"} 
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20,
             background: 'var(--surface, #ffffff)', color: 'var(--text, #0f172a)',
@@ -128,6 +179,7 @@ function ComplaintTimeline() {
                     ['Priority', <Badge key="pri" variant={complaint.priority === 'HIGH' ? 'danger' : complaint.priority === 'MEDIUM' ? 'warning' : 'info'} label={complaint.priority} />],
                     ['SLA Status', <Badge key="sla" variant={complaint.slaStatus === 'ON_TIME' ? 'success' : complaint.slaStatus === 'NEAR_DEADLINE' ? 'warning' : complaint.slaStatus === 'OVERDUE' ? 'danger' : 'neutral'} label={complaint.slaStatus || 'N/A'} />],
                     ['Assigned Officer', complaint.assignedOfficer || <span key="off" style={{ color: 'var(--color-text-muted)' }}>Not yet assigned</span>],
+                    ['Related Reports', complaint.relatedComplaintCount > 0 ? <span key="rel" style={{ color: '#2563eb', fontWeight: 800 }}>👥 {complaint.relatedComplaintCount} Linked Reports</span> : 'None'],
                     ['Filed On', complaint.createdAt ? new Date(complaint.createdAt).toLocaleString('en-IN') : '—'],
                     ['SLA Deadline', complaint.slaDeadline ? new Date(complaint.slaDeadline).toLocaleString('en-IN') : '—'],
                   ].map(([label, value]) => (
@@ -246,7 +298,7 @@ function ComplaintTimeline() {
         </SectionCard>
 
         {/* Feedback Widget for Resolved / Closed Complaints */}
-        {complaint && (complaint.status === 'RESOLVED' || complaint.status === 'CLOSED') && (
+        {isCitizen && complaint && (complaint.status === 'RESOLVED' || complaint.status === 'CLOSED') && (
           <div style={{ marginTop: 24 }}>
             <FeedbackCard
               referenceType="COMPLAINT"

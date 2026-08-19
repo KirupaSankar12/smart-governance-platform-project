@@ -1,5 +1,5 @@
 @echo off
-set KCADM=d:\civic plus milestone\keycloak-26.6.4\bin\kcadm.bat
+set KCADM=%~dp0keycloak-26.6.4\bin\kcadm.bat
 
 call "%KCADM%" update users/fd6c737a-c8a5-46c9-8b46-1655372bf08a -r civicpulse -s firstName=Mark -s lastName=Officer -s emailVerified=true
 call "%KCADM%" update users/df56e803-8560-48b7-864b-838dc6a18db4 -r civicpulse -s firstName=Ryan -s lastName=Officer -s emailVerified=true

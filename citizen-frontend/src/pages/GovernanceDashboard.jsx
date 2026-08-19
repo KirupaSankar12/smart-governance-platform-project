@@ -182,7 +182,7 @@ function AiChatDrawer({ open, onClose, isDark }) {
                 <Brain size={18} color="#fff" />
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>CivicPulse AI</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Smart Governance AI</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)' }}>Governance Intelligence</div>
               </div>
             </div>
@@ -253,7 +253,7 @@ function AiChatDrawer({ open, onClose, isDark }) {
               <Send size={16} />
             </button>
           </div>
-          <div style={{ marginTop: 8, fontSize: 10, color: t.sub, textAlign: 'center' }}>AI answers using only live CivicPulse data</div>
+          <div style={{ marginTop: 8, fontSize: 10, color: t.sub, textAlign: 'center' }}>AI answers using only live Smart Governance data</div>
         </div>
       </div>
       <style>{`@keyframes fadeIn { from{opacity:0} to{opacity:1} } @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }`}</style>
@@ -300,7 +300,7 @@ function exportPDF(aiData, govData) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CivicPulse Nexus \u2014 Governance Intelligence Report</title>
+<title>Smart Governance Platform \u2014 Governance Intelligence Report</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Georgia',serif;color:#1a1a2e;background:#fff;padding:48px 56px;font-size:13px;line-height:1.7}
@@ -339,7 +339,7 @@ body{font-family:'Georgia',serif;color:#1a1a2e;background:#fff;padding:48px 56px
 </style></head><body>
 
 <div class="header">
-  <div class="logo">CivicPulse Nexus</div>
+  <div class="logo">Smart Governance Platform</div>
   <div class="report-title">Governance Intelligence Report</div>
   <div class="meta-grid">
     <div class="meta-item"><span class="meta-label">Generated</span><span class="meta-value">${dateStr}</span></div>
@@ -409,11 +409,11 @@ ${sec('Department Priorities', listItems(aiData.departmentPriorities))}
 ${sec('Data Sources', `<div class="tags">${['Grievance','Services','Welfare','Budget','Revenue','Citizen','Audit'].map(s => `<span class="tag">${s}</span>`).join('')}</div>`)}
 
 <div class="footer">
-  <div class="footer-name">CivicPulse Nexus</div>
+  <div class="footer-name">Smart Governance Platform</div>
   <div class="footer-sub">Governance Analytics &amp; Intelligence</div>
   <div class="disclaimer">
     <strong>\u26A0 AI Disclaimer</strong>
-    AI-generated insights are decision-support recommendations based on current CivicPulse data. Official decisions remain the responsibility of authorized administrators. This report is auto-generated and should be reviewed by qualified personnel before use in official proceedings.
+    AI-generated insights are decision-support recommendations based on current Smart Governance data. Official decisions remain the responsibility of authorized administrators. This report is auto-generated and should be reviewed by qualified personnel before use in official proceedings.
   </div>
 </div>
 </body></html>`;
@@ -435,7 +435,7 @@ function exportCSV(aiData, govData) {
   const gd  = govData || {};
   const now = new Date();
   const rows = [
-    ['CivicPulse Nexus \u2014 Governance Intelligence Report'],
+    ['Smart Governance Platform \u2014 Governance Intelligence Report'],
     ['Generated', now.toLocaleString('en-IN')],
     ['Data Period', 'All available records'],
     ['AI Engine', 'Google Gemini'],
@@ -497,7 +497,7 @@ function exportCSV(aiData, govData) {
     ['Events Last 24h', gd.auditRecentEvents24h || 0],
     [''],
     ['=== DISCLAIMER ==='],
-    ['', 'AI-generated insights are decision-support recommendations based on current CivicPulse data.'],
+    ['', 'AI-generated insights are decision-support recommendations based on current Smart Governance data.'],
     ['', 'Official decisions remain the responsibility of authorized administrators.'],
   ];
   const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -505,7 +505,7 @@ function exportCSV(aiData, govData) {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = `CivicPulse_Governance_Report_${now.toISOString().slice(0, 10)}.csv`;
+  a.download = `Smart_Governance_Report_${now.toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -605,7 +605,7 @@ function AiExecutiveBrief({ isDark, aiData, analyzing, aiError, onGenerate, onCh
             <div style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: aiData && !aiData.aiUnavailable ? '#10b981' : '#94a3b8', border: `2px solid ${t.card}` }} />
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: t.text, letterSpacing: '-0.02em' }}>CivicPulse AI Executive Brief</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: t.text, letterSpacing: '-0.02em' }}>Smart Governance AI Executive Brief</div>
             <div style={{ fontSize: 12, color: t.sub, marginTop: 2 }}>
               {aiData && !aiData.aiUnavailable
                 ? `Analysis generated · ${new Date(aiData.dataTimestamp).toLocaleTimeString()} · Powered by Gemini`
@@ -636,7 +636,7 @@ function AiExecutiveBrief({ isDark, aiData, analyzing, aiError, onGenerate, onCh
             onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.12)' : '#eef2ff'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
-            <MessageSquare size={13} />Ask CivicPulse AI
+            <MessageSquare size={13} />Ask Smart Governance AI
           </button>
           {aiData && !aiData.aiUnavailable && (
             <ExportDropdown aiData={aiData} govData={govData} isDark={isDark} />
@@ -665,7 +665,7 @@ function AiExecutiveBrief({ isDark, aiData, analyzing, aiError, onGenerate, onCh
           </div>
           <div style={{ fontSize: 15, fontWeight: 800, color: t.text, marginBottom: 8 }}>AI Governance Analysis Ready</div>
           <div style={{ fontSize: 13, color: t.sub, maxWidth: 440, margin: '0 auto', lineHeight: 1.6 }}>
-            Click <strong>Generate AI Analysis</strong> to get an executive brief, department insights, and recommendations from your live CivicPulse data.
+            Click <strong>Generate AI Analysis</strong> to get an executive brief, department insights, and recommendations from your live Smart Governance data.
             All numbers shown here come from your database — Gemini only interprets them.
           </div>
         </div>
@@ -791,7 +791,7 @@ function AiExecutiveBrief({ isDark, aiData, analyzing, aiError, onGenerate, onCh
           {/* AI Disclaimer */}
           <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 10, background: isDark ? '#1c1400' : '#fffbeb', border: `1px solid ${isDark ? '#78350f' : '#fde68a'}`, fontSize: 11, color: isDark ? '#fcd34d' : '#92400e', lineHeight: 1.6, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
-            <span><strong>AI Disclaimer: </strong>AI-generated insights are decision-support recommendations based on current CivicPulse data. Official decisions remain the responsibility of authorized administrators.</span>
+            <span><strong>AI Disclaimer: </strong>AI-generated insights are decision-support recommendations based on current Smart Governance data. Official decisions remain the responsibility of authorized administrators.</span>
           </div>
         </div>
       )}
@@ -981,7 +981,7 @@ export default function GovernanceDashboard() {
         {/* ── Header ────────────────────────────────────────────────────────── */}
         <ReportPageHeader
           title="Governance Analytics Dashboard"
-          subtitle="Executive intelligence layer · AI-powered insights from live CivicPulse data"
+          subtitle="Executive intelligence layer · AI-powered insights from live Smart Governance data"
           icon={BarChart2}
           iconBg="linear-gradient(135deg, #0f172a, #1e293b)"
           iconColor="#38bdf8"

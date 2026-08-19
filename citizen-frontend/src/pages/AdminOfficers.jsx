@@ -5,6 +5,7 @@ import PageLoader from '../components/PageLoader.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { ReportPageHeader, KpiCard, SectionCard, GLOBAL_STYLES } from '../components/ReportShared.jsx';
 import { Search, Plus, Edit2, Trash2, UserCheck, Users, Mail, Phone, KeyRound, CheckCircle2, Award, Clock, ShieldCheck, X, Briefcase } from 'lucide-react';
+import { toast } from 'sonner';
 
 function OfficerAvatar({ name }) {
   const initials = (name || 'Officer')
@@ -140,6 +141,43 @@ function AdminOfficers() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ─── Form Validation ──────────────────────────────────────────────────────
+    const officerName = (formData.officerName || '').trim();
+    if (officerName.length < 3) {
+      toast.error('Full Name must be at least 3 characters long.');
+      return;
+    }
+    if (/\d/.test(officerName)) {
+      toast.error('Full Name cannot contain numeric characters.');
+      return;
+    }
+
+    const username = (formData.username || '').trim();
+    if (!/^[a-zA-Z0-9._]+$/.test(username)) {
+      toast.error('Username can only contain letters, numbers, dots, and underscores.');
+      return;
+    }
+
+    const email = (formData.email || '').trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid email address (e.g., george@muni.org).');
+      return;
+    }
+
+    const phone = (formData.phoneNumber || '').replace(/\D/g, '');
+    if (phone.length !== 10) {
+      toast.error('Phone Number must be exactly 10 digits.');
+      return;
+    }
+
+    if (!isEditing && formData.password && formData.password.length < 6) {
+      toast.error('Keycloak Password must be at least 6 characters long.');
+      return;
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     try {
       if (isEditing) {
         await api.put(`/service-management-service/api/officers/${formData.id}`, formData);
@@ -153,7 +191,7 @@ function AdminOfficers() {
       setTimeout(() => setToastMessage(''), 5000);
     } catch (err) {
       console.error('Failed to save officer', err);
-      alert('Failed to save officer. Check console for details.');
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Failed to save officer.');
     }
   };
 

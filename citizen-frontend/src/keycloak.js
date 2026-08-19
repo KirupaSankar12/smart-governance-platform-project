@@ -34,7 +34,7 @@ keycloak.logout = async function(options) {
     }
   }
   
-  window.location.href = '/';
+  window.location.href = '/login';
 };
 
 keycloak.onAuthRefreshSuccess = function() {

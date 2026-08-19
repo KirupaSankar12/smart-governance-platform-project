@@ -124,6 +124,18 @@ export default function AdminWelfareDashboard() {
         date: new Date().toLocaleDateString('en-IN')
       });
 
+      // Notify the citizen
+      api.post('/notification-service/api/notifications', {
+        recipient: updated.citizenId || beneficiary.citizenId || 'CIT-001',
+        title: 'Funds Credited',
+        message: `Your welfare benefit has been credited to your registered bank account. Transaction ID: ${updated.transactionId || 'DBT-2026-X'}`,
+        relatedEntityId: String(updated.beneficiaryId || beneficiary.beneficiaryId),
+        relatedEntityType: 'WELFARE',
+        eventType: 'funds-disbursed',
+        recipientRole: 'CITIZEN'
+      }).catch(() => {});
+      window.dispatchEvent(new Event('refresh-notifications'));
+
       loadData();
       toast.success(`Direct Benefit Transfer (DBT) released for ${beneficiary.beneficiaryCode}!`);
     } catch (e) {
@@ -137,6 +149,21 @@ export default function AdminWelfareDashboard() {
     setActioningId(rejectModal);
     try {
       await api.put(`/welfare-service/api/welfare/beneficiaries/${rejectModal}/reject`, { reason: rejectReason });
+      
+      const app = allApps.find(a => a.beneficiaryId === rejectModal);
+      if (app) {
+        api.post('/notification-service/api/notifications', {
+          recipient: app.citizenId || 'CIT-001',
+          title: 'Application Rejected',
+          message: `Your welfare application was rejected by Admin. Reason: ${rejectReason}`,
+          relatedEntityId: String(rejectModal),
+          relatedEntityType: 'WELFARE',
+          eventType: 'beneficiary-rejected',
+          recipientRole: 'CITIZEN'
+        }).catch(() => {});
+        window.dispatchEvent(new Event('refresh-notifications'));
+      }
+      
       toast.error('Application Rejected');
       setRejectModal(null); setRejectReason(''); loadData();
     } catch (e) { toast.error(e.response?.data?.error || 'Reject failed'); }

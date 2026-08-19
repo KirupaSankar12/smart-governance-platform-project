@@ -5,7 +5,7 @@
 
 
 /* ==========================================
-   DESIGN SYSTEM — CivicPulse Nexus
+   DESIGN SYSTEM — Smart Governance Platform
    ========================================== */
 :root {
   --background: 0 0% 100%;
@@ -2988,6 +2988,26 @@ main > div > div:first-child[style*="border-radius: 20"],
 }
 .civic-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.7);
+}
+
+/* ─── Google Translate UI Overrides ─── */
+iframe.goog-te-banner-frame, 
+.goog-te-banner-frame,
+.goog-te-banner, 
+.skiptranslate,
+#goog-gt-tt,
+.goog-te-balloon-frame {
+  display: none !important;
+  visibility: hidden !important;
+}
+body {
+  top: 0px !important;
+  position: static !important;
+}
+.goog-text-highlight {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 

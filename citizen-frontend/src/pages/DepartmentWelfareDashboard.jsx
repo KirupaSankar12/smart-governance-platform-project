@@ -199,8 +199,63 @@ function DocumentBodyPreview({ doc, appDetails }) {
   );
 }
 
+const resolveOfficerDept = () => {
+  let parsed = keycloak.tokenParsed;
+  if (!parsed || !Object.keys(parsed).length) {
+    const token = localStorage.getItem('kc_token');
+    if (token) {
+      try {
+        parsed = JSON.parse(atob(token.split('.')[1]));
+      } catch (e) {}
+    }
+  }
+  const username = (parsed?.preferred_username || parsed?.username || parsed?.email || parsed?.name || '').toLowerCase();
+  const tokenDept = parsed?.department;
+
+  if (tokenDept) return tokenDept;
+
+  const OFFICER_DEPT_MAP = {
+    john: 'Health Department',
+    mark: 'Revenue Department',
+    ryan: 'Municipal Corporation',
+    chris: 'Water Department',
+    ethan: 'Roads Department',
+    jack: 'Electricity Department',
+    david: 'Social Welfare Department',
+    will: 'Urban Planning Department',
+    emily: 'Education Department'
+  };
+
+  for (const [key, deptName] of Object.entries(OFFICER_DEPT_MAP)) {
+    if (username.includes(key)) {
+      return deptName;
+    }
+  }
+
+  const deptKeywords = {
+    health: 'Health Department',
+    revenue: 'Revenue Department',
+    municipal: 'Municipal Corporation',
+    water: 'Water Department',
+    roads: 'Roads Department',
+    electricity: 'Electricity Department',
+    socialwelfare: 'Social Welfare Department',
+    welfare: 'Social Welfare Department',
+    urban: 'Urban Planning Department',
+    education: 'Education Department',
+    sanitation: 'Sanitation Department'
+  };
+  for (const [kw, deptName] of Object.entries(deptKeywords)) {
+    if (username.includes(kw)) {
+      return deptName;
+    }
+  }
+
+  return 'Health Department';
+};
+
 export default function DepartmentWelfareDashboard() {
-  const [selectedDept, setSelectedDept] = useState('Education Department');
+  const [selectedDept, setSelectedDept] = useState(resolveOfficerDept);
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [schemes, setSchemes] = useState({});
   const [loading, setLoading] = useState(true);
@@ -216,20 +271,13 @@ export default function DepartmentWelfareDashboard() {
   const [submittingAction, setSubmittingAction] = useState(false);
   const [previewDocModal, setPreviewDocModal] = useState(null);
 
-  // Auto detect officer's department from Keycloak username
+  // Auto detect officer's department from Keycloak username or token
   useEffect(() => {
-    const username = (keycloak.tokenParsed?.preferred_username || keycloak.tokenParsed?.username || '').toLowerCase();
-    const dept = keycloak.tokenParsed?.department;
+    const dept = resolveOfficerDept();
     if (dept) {
       setSelectedDept(dept);
-    } else if (username.includes('david')) {
-      setSelectedDept('Social Welfare Department');
-    } else if (username.includes('john')) {
-      setSelectedDept('Health Department');
-    } else if (username.includes('emily')) {
-      setSelectedDept('Education Department');
     }
-  }, []);
+  }, [keycloak.authenticated, keycloak.token]);
 
   const loadData = async () => {
     setLoading(true);
@@ -289,6 +337,40 @@ export default function DepartmentWelfareDashboard() {
       } catch (err1) {
         await api.put(`/api/welfare/beneficiaries/${selectedApp.beneficiaryId}/recommend`, payload);
       }
+      
+      // Emit notifications
+      api.post('/notification-service/api/notifications', {
+        recipient: selectedApp.citizenId || 'CIT-001',
+        title: 'Application Recommended',
+        message: `Your application ${selectedApp.beneficiaryCode} passed department verification and has been recommended to Admin for financial sanction.`,
+        relatedEntityId: String(selectedApp.beneficiaryId || selectedApp.beneficiaryCode),
+        relatedEntityType: 'WELFARE',
+        eventType: 'beneficiary-recommended',
+        recipientRole: 'CITIZEN'
+      }).catch(() => {});
+
+      api.post('/notification-service/api/notifications', {
+        recipient: username,
+        title: 'Recommendation Submitted',
+        message: `Recommended application ${selectedApp.beneficiaryCode} to Admin queue for financial release.`,
+        relatedEntityId: String(selectedApp.beneficiaryId || selectedApp.beneficiaryCode),
+        relatedEntityType: 'WELFARE',
+        eventType: 'beneficiary-recommended',
+        recipientRole: 'OFFICER'
+      }).catch(() => {});
+
+      // Notify the Admin
+      api.post('/notification-service/api/notifications', {
+        recipient: 'admin', // or 'admin_user' depending on standard setup
+        title: 'Application Recommended by Officer',
+        message: `Department Officer ${username} has recommended application ${selectedApp.beneficiaryCode} for financial release.`,
+        relatedEntityId: String(selectedApp.beneficiaryId || selectedApp.beneficiaryCode),
+        relatedEntityType: 'WELFARE',
+        eventType: 'beneficiary-recommended',
+        recipientRole: 'ADMIN'
+      }).catch(() => {});
+
+      window.dispatchEvent(new Event('refresh-notifications'));
       toast.success(`Application ${selectedApp.beneficiaryCode} recommended to Admin queue for financial release!`);
       setSelectedApp(null);
       setActionType(null);
@@ -327,6 +409,29 @@ export default function DepartmentWelfareDashboard() {
       } catch (err1) {
         await api.put(`/api/welfare/beneficiaries/${selectedApp.beneficiaryId}/reject`, payload);
       }
+
+      // Emit notifications
+      api.post('/notification-service/api/notifications', {
+        recipient: selectedApp.citizenId || 'CIT-001',
+        title: 'Application Rejected',
+        message: `Your welfare application ${selectedApp.beneficiaryCode} was rejected by ${selectedDept}. Reason: ${finalReason}`,
+        relatedEntityId: String(selectedApp.beneficiaryId || selectedApp.beneficiaryCode),
+        relatedEntityType: 'WELFARE',
+        eventType: 'beneficiary-rejected',
+        recipientRole: 'CITIZEN'
+      }).catch(() => {});
+
+      api.post('/notification-service/api/notifications', {
+        recipient: username,
+        title: 'Application Rejected',
+        message: `Rejected application ${selectedApp.beneficiaryCode}. Reason: ${finalReason}`,
+        relatedEntityId: String(selectedApp.beneficiaryId || selectedApp.beneficiaryCode),
+        relatedEntityType: 'WELFARE',
+        eventType: 'beneficiary-rejected',
+        recipientRole: 'OFFICER'
+      }).catch(() => {});
+
+      window.dispatchEvent(new Event('refresh-notifications'));
       toast.success(`Application ${selectedApp.beneficiaryCode} rejected.`);
       setSelectedApp(null);
       setActionType(null);
@@ -360,6 +465,29 @@ export default function DepartmentWelfareDashboard() {
       } catch (err1) {
         await api.put(`/api/welfare/beneficiaries/${selectedApp.beneficiaryId}/request-docs`, payload);
       }
+
+      // Emit notifications
+      api.post('/notification-service/api/notifications', {
+        recipient: selectedApp.citizenId || 'CIT-001',
+        title: 'Action Required: Additional Documents Requested',
+        message: `Additional documents requested for ${selectedApp.beneficiaryCode}. Remarks: ${requestDocsRemarks}`,
+        relatedEntityId: String(selectedApp.beneficiaryId || selectedApp.beneficiaryCode),
+        relatedEntityType: 'WELFARE',
+        eventType: 'additional-docs-requested',
+        recipientRole: 'CITIZEN'
+      }).catch(() => {});
+
+      api.post('/notification-service/api/notifications', {
+        recipient: username,
+        title: 'Document Request Sent',
+        message: `Requested additional documents from citizen for application ${selectedApp.beneficiaryCode}.`,
+        relatedEntityId: String(selectedApp.beneficiaryId || selectedApp.beneficiaryCode),
+        relatedEntityType: 'WELFARE',
+        eventType: 'additional-docs-requested',
+        recipientRole: 'OFFICER'
+      }).catch(() => {});
+
+      window.dispatchEvent(new Event('refresh-notifications'));
       toast.success(`Document request sent to citizen for ${selectedApp.beneficiaryCode}.`);
       setSelectedApp(null);
       setActionType(null);
@@ -388,10 +516,26 @@ export default function DepartmentWelfareDashboard() {
     return true;
   });
 
+  const sortedApps = [...filteredApps].sort((a, b) => {
+    const dateA = new Date(a.appliedDate || a.createdDate || 0);
+    const dateB = new Date(b.appliedDate || b.createdDate || 0);
+    if (dateB.getTime() !== dateA.getTime()) {
+      return dateB.getTime() - dateA.getTime();
+    }
+    return (b.beneficiaryCode || '').localeCompare(a.beneficiaryCode || '');
+  });
+
   const getOfficerName = () => {
+    if (selectedDept === 'Health Department') return 'John Smith (john)';
     if (selectedDept === 'Education Department') return 'Emily Carter (emily)';
     if (selectedDept === 'Social Welfare Department') return 'David Wilson (david)';
-    if (selectedDept === 'Health Department') return 'John Smith (john)';
+    if (selectedDept === 'Revenue Department') return 'Mark Davis (mark)';
+    if (selectedDept === 'Municipal Corporation') return 'Ryan Howard (ryan)';
+    if (selectedDept === 'Water Department') return 'Chris Evans (chris)';
+    if (selectedDept === 'Roads Department') return 'Ethan Hunt (ethan)';
+    if (selectedDept === 'Electricity Department') return 'Jack Ryan (jack)';
+    if (selectedDept === 'Urban Planning Department') return 'Will Byers (will)';
+    if (selectedDept === 'All Departments') return 'All Department Officers';
     return 'Department Officer';
   };
 
@@ -518,7 +662,7 @@ export default function DepartmentWelfareDashboard() {
         {/* Application Cards List */}
         {loading ? <PageLoader message="Loading department applications..." /> : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {filteredApps.length === 0 && (
+            {sortedApps.length === 0 && (
               <div style={{
                 background: '#ffffff', borderRadius: 16, border: '1.5px solid #e2e8f0',
                 padding: '48px 24px', textAlign: 'center', boxShadow: '0 2px 8px rgba(15,23,42,0.04)'
@@ -556,7 +700,7 @@ export default function DepartmentWelfareDashboard() {
               </div>
             )}
 
-            {filteredApps.map(b => {
+            {sortedApps.map(b => {
               const scheme = schemes[b.schemeId];
               return (
                 <SectionCard key={b.beneficiaryId} title="">
@@ -922,12 +1066,12 @@ export default function DepartmentWelfareDashboard() {
         {previewDocModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
             <div style={{ background: '#fff', borderRadius: 20, maxWidth: 540, width: '100%', overflow: 'hidden' }}>
-              <div style={{ background: '#0f172a', color: '#fff', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <strong style={{ fontSize: 15 }}>Preview: {previewDocModal.docName}</strong>
-                  {previewDocModal.fileName && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Original File: {previewDocModal.fileName}</div>}
+               <div style={{ background: '#0f172a', color: '#fff', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <strong style={{ fontSize: 15, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Preview: {previewDocModal.docName}</strong>
+                  {previewDocModal.fileName && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Original File: {previewDocModal.fileName}</div>}
                 </div>
-                <button onClick={() => setPreviewDocModal(null)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}><X size={18} /></button>
+                <button onClick={() => setPreviewDocModal(null)} style={{ background: 'rgba(239,68,68,0.1)', border: 'none', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><X size={18} color="#ef4444" /></button>
               </div>
               <div style={{ padding: 24 }}>
                 <DocumentBodyPreview doc={previewDocModal} appDetails={selectedApp} />

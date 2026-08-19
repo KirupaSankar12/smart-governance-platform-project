@@ -1,0 +1,258 @@
+{
+  "nav": {
+    "bulletins": "Bulletins",
+    "slaTracker": "SLA Tracker",
+    "serviceHub": "Service Hub",
+    "guidedTour": "Guided Tour",
+    "signIn": "Sign In",
+    "register": "Register",
+    "citizenSignIn": "Citizen Sign In",
+    "registerAsCitizen": "Register as Citizen"
+  },
+  "languages": {
+    "en": "English",
+    "ta": "தமிழ்",
+    "hi": "हिन्दी"
+  },
+  "hero": {
+    "title": "Next-Gen Smart Governance Portal • 2026 Edition",
+    "subtitlePrefix": "Your Gateway to",
+    "subtitleHighlight": "Smart, Instant & Accountable",
+    "subtitleSuffix": "Governance.",
+    "desc": "Smart Governance Platform is a cloud-native digital public infrastructure connecting 4,200+ citizens with municipal departments. File grievances with automated SLA tracking, apply for verified certificates, and claim welfare schemes — 100% paperless.",
+    "registerBtn": "Register as Citizen",
+    "signInBtn": "Citizen Sign In",
+    "tourBtn": "Take Guided Tour",
+    "passBadge": "DIGITAL CITIZEN PASS",
+    "gateway": "Verified Gov-Tech SSO Gateway",
+    "authenticated": "AUTHENTICATED",
+    "digilocker": "DigiLocker QR Signed Certs",
+    "digilockerDesc": "Zero physical office visits",
+    "slaEngine": "SLA Engine Auto Escalations",
+    "slaEngineDesc": "Guaranteed response time",
+    "directDbt": "Direct DBT Welfare Payouts",
+    "directDbtDesc": "Direct Aadhaar bank credit",
+    "keycloak": "Keycloak SSO 256-Bit Security",
+    "keycloakDesc": "Multi-factor identity"
+  },
+  "quickActions": {
+    "title": "CITIZEN STATUS & QUICK ACTIONS",
+    "subtitlePublic": "Check your applications, complaints, certificates and welfare services in one place.",
+    "welcomeBack": "Welcome back",
+    "verifiedProfile": "Verified Citizen Profile",
+    "live": "LIVE",
+    "stats": {
+      "activeComplaints": "Active Complaints",
+      "digitalCertificates": "Digital Certificates",
+      "welfareApplications": "Welfare Applications",
+      "serviceRequests": "Active Service Requests"
+    },
+    "complaints": {
+      "title": "Track My Complaints",
+      "category": "GRIEVANCE",
+      "desc": "Check the latest status of your submitted complaints, assigned officer, priority, and SLA deadline.",
+      "signInMsg": "🔒 Sign in to view your complaints & track active status.",
+      "noComplaints": "No active complaints",
+      "noComplaintsDesc": "You haven't submitted any active complaints.",
+      "trackBtn": "Track Complaint",
+      "newBtn": "+ File a Complaint",
+      "signInBtn": "Sign In to Track →"
+    },
+    "certificates": {
+      "title": "My Certificates",
+      "category": "E-SERVICE",
+      "desc": "Track your certificate applications, approval status, and available digital certificates.",
+      "signInMsg": "🔒 Sign in to view certificates & check digital applications.",
+      "noCerts": "No certificate applications",
+      "noCertsDesc": "Start a digital certificate application online.",
+      "viewBtn": "View Certificate",
+      "exploreBtn": "Explore Certificates",
+      "signInBtn": "Sign In to Check →"
+    },
+    "welfare": {
+      "title": "My Welfare Benefits",
+      "category": "WELFARE",
+      "desc": "Check your welfare applications, eligibility status, and available payment information.",
+      "signInMsg": "🔒 Sign in to check welfare benefits & direct bank transfers.",
+      "noWelfare": "No welfare applications found",
+      "noWelfareDesc": "Explore available welfare schemes online.",
+      "checkBtn": "Check Welfare Status",
+      "exploreBtn": "Explore Welfare Schemes",
+      "signInBtn": "Sign In to Check →"
+    },
+    "services": {
+      "title": "My Service Requests",
+      "category": "SERVICES",
+      "desc": "Track your active applications and service requests across municipal departments.",
+      "signInMsg": "🔒 Sign in to view active service requests across municipal departments.",
+      "activeMsg": "Active Municipal Services",
+      "accessMsg": "Access all 24+ digital public services online.",
+      "viewBtn": "View My Requests",
+      "signInBtn": "Sign In to View →"
+    },
+    "notices": {
+      "title": "Official Notices",
+      "category": "NOTICE",
+      "desc": "View important municipal announcements, service disruptions, emergency advisories, and public notices.",
+      "sampleTitle": "Scheduled Water Supply Maintenance",
+      "sampleDesc": "Water supply maintenance in Sector 7–12 during scheduled pipeline upgrades.",
+      "viewBtn": "View Public Notices"
+    },
+    "alerts": {
+      "title": "Live Service Alerts",
+      "category": "LIVE ALERTS",
+      "desc": "View current service disruptions, emergency advisories, and important updates affecting your area.",
+      "sampleTitle": "🚨 Monsoon Alert & Emergency Hotline",
+      "sampleDesc": "Disaster Management Control Room Active • Hotline: 1800-11-2026 / 112",
+      "viewBtn": "View Live Alerts"
+    }
+  },
+  "tracker": {
+    "title": "CITIZEN SERVICE TRACKER",
+    "subtitle": "Track your complaints, applications, certificates and welfare services in one place.",
+    "inputPlaceholder": "Enter Complaint ID / Application ID (e.g. CP-2026-8941)",
+    "trackBtn": "Track Status",
+    "loadingMsg": "Checking your application & retrieving latest status...",
+    "notFoundTitle": "Application Not Found",
+    "notFoundDesc": "We couldn't find an active record matching this ID. Please check the ID and try again.",
+    "tryAgain": "Try Again",
+    "myRecent": "MY RECENT APPLICATIONS",
+    "viewDetails": "View Full Details",
+    "assignedOfficer": "Assigned Officer",
+    "notAssigned": "Not Assigned Yet",
+    "department": "Department",
+    "priority": "Priority",
+    "slaStatus": "SLA Status",
+    "deadline": "Deadline",
+    "timeline": "Application Timeline",
+    "categories": {
+      "complaints": "Complaints",
+      "certificates": "Certificates",
+      "welfare": "Welfare",
+      "services": "Service Requests"
+    }
+  },
+  "sla": {
+    "title": "Interactive Live SLA Tracker",
+    "desc": "Every citizen grievance is timestamped on the Kafka Event Bus, auto-assigned to field officers, and monitored against SLA breach timers.",
+    "trySample": "Try sample tickets",
+    "trackLive": "Track Live"
+  },
+  "servicesHub": {
+    "title": "Citizen Services Hub",
+    "desc": "Centralized municipal digital public infrastructure catalog."
+  },
+  "tour": {
+    "stepCounter": "Step {{current}} of {{total}}",
+    "skip": "Skip Tour",
+    "back": "Back",
+    "next": "Next →",
+    "finish": "Got it! Finish",
+    "steps": {
+      "1": {
+        "title": "Welcome to Smart Governance",
+        "subtitle": "2026 Digital Public Infrastructure Gateway",
+        "desc": "Your unified portal to access municipal services, submit civic complaints, track SLA timelines, and claim welfare benefits 100% paperless."
+      },
+      "2": {
+        "title": "Start Your Citizen Journey",
+        "subtitle": "Account & Single Sign-On Access",
+        "desc": "Create your citizen account to access digital services, submit complaints, track requests, and manage your applications. Already registered? Sign in to continue."
+      },
+      "3": {
+        "title": "Report Civic Issues",
+        "subtitle": "Direct Municipal Department Dispatch",
+        "desc": "Report problems such as water leaks, road damage, street-light failures, power outages, sanitation issues, and other civic concerns directly through the platform."
+      },
+      "4": {
+        "title": "Apply for Certificates Online",
+        "subtitle": "Instant e-Services",
+        "desc": "Apply for services such as Birth, Income, Residence, and other eligible certificates digitally without unnecessary office visits."
+      },
+      "5": {
+        "title": "Access Welfare Services",
+        "subtitle": "Direct Benefit Transfer (DBT)",
+        "desc": "Explore eligible welfare schemes, pensions, scholarships, and other support services available through the digital platform."
+      },
+      "6": {
+        "title": "Track Your Complaint",
+        "subtitle": "Transparent Resolution Timeline",
+        "desc": "Once you submit a complaint, you can follow its progress, see its current status, view the assigned department or officer, and monitor the expected resolution timeline."
+      },
+      "7": {
+        "title": "Centralized Municipal Catalog",
+        "subtitle": "Explore All Services",
+        "desc": "Find municipal services in one place. Search or browse services by category such as Grievances, Certificates, Permits, and Welfare."
+      },
+      "8": {
+        "title": "Official Bulletins & Alerts",
+        "subtitle": "Real-Time City Broadcasts",
+        "desc": "Stay informed about emergency advisories, water supply schedules, road closures, and municipal announcements affecting your ward."
+      },
+      "9": {
+        "title": "Need Help?",
+        "subtitle": "Restart Tour & Help Resources",
+        "desc": "You can restart this guided tour whenever you need help understanding the platform. If an AI Assistant is available, you can also use it to ask questions about available services and navigation."
+      }
+    }
+  },
+  "complaintForm": {
+    "headerTitle": "File a Civic Grievance",
+    "headerSub": "Auto-routed to field officers with real-time SLA tracking",
+    "details": "Complaint Details",
+    "titleLabel": "Complaint Title / Headline",
+    "titlePlaceholder": "e.g., Water Leakage in Sector 4",
+    "descLabel": "Detailed Description",
+    "descPlaceholder": "Provide complete details about the issue...",
+    "departmentLabel": "Target Department",
+    "categoryLabel": "Issue Category",
+    "locationLabel": "Location / Ward Number",
+    "locationPlaceholder": "e.g., Ward 12, Main Street, near Community Park",
+    "attachmentsLabel": "Upload Photo / Evidence",
+    "submitBtn": "Submit Complaint",
+    "submitting": "Submitting Complaint...",
+    "successMsg": "Grievance filed successfully! SLA timer started.",
+    "errorMsg": "Failed to submit grievance. Please try again."
+  },
+  "duplicateDetection": {
+    "foundTitle": "Similar Active Complaints Found",
+    "foundDesc": "We found existing complaints that may refer to the same civic issue in your area.",
+    "highlyLikely": "Highly Likely Duplicate",
+    "possible": "Possible Duplicate",
+    "viewComplaint": "View Complaint",
+    "linkComplaint": "Link to Existing Complaint",
+    "submitAsNew": "Submit as New Complaint",
+    "unableToCheck": "Unable to Check for Similar Complaints",
+    "retryCheck": "Retry Verification",
+    "submitAnyway": "Submit Anyway"
+  },
+  "status": {
+    "NEW": "New",
+    "ASSIGNED": "Assigned",
+    "IN_PROGRESS": "In Progress",
+    "PENDING": "Pending",
+    "RESOLVED": "Resolved",
+    "CLOSED": "Closed",
+    "REJECTED": "Rejected",
+    "SUBMITTED": "Submitted",
+    "UNDER_VERIFICATION": "Under Verification",
+    "APPROVED": "Approved",
+    "CERTIFICATE_GENERATED": "Ready for Download",
+    "TRANSFERRED": "Transferred"
+  },
+  "categories": {
+    "Grievance": "Grievance",
+    "Certificates": "Certificates",
+    "Permits": "Permits",
+    "Welfare": "Welfare",
+    "WATER_SUPPLY": "Water Supply & Quality",
+    "ROADS": "Roads, Potholes & Signals",
+    "ELECTRICITY": "Electricity & Streetlights",
+    "SANITATION": "Sanitation & Solid Waste",
+    "HEALTH": "Public Health & Fogging",
+    "BIRTH_CERTIFICATE": "Birth Certificate",
+    "DEATH_CERTIFICATE": "Death Certificate",
+    "TRADE_LICENSE": "Trade & Commercial License",
+    "INCOME_CERTIFICATE": "Income & Caste Certificate"
+  }
+}

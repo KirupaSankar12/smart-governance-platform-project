@@ -102,6 +102,7 @@ export default function SchemeManagement() {
   };
 
   const handleSave = async () => {
+    if (saving) return;
     setSaving(true);
     try {
       const body = {
@@ -116,13 +117,46 @@ export default function SchemeManagement() {
         await api.put(`/welfare-service/api/welfare/schemes/${editScheme.schemeId}`, body);
         toast.success('Scheme updated successfully!');
       } else {
-        await api.post('/welfare-service/api/welfare/schemes', body);
+        const res = await api.post('/welfare-service/api/welfare/schemes', body);
         toast.success('Scheme created successfully!');
+        
+        try {
+          const schemeIdStr = res.data?.schemeId ? String(res.data.schemeId) : '';
+          // 1. Admin Notification
+          await api.post('/notification-service/api/notifications', {
+            recipient: 'admin',
+            title: 'Welfare Scheme Launched',
+            message: `Welfare scheme '${body.schemeName}' has been successfully created under ${body.department}.`,
+            relatedEntityId: schemeIdStr,
+            relatedEntityType: 'WELFARE',
+            eventType: 'scheme-created',
+            recipientRole: 'ADMIN'
+          });
+
+          // 2. Citizen Notification (Broadcast)
+          await api.post('/notification-service/api/notifications', {
+            recipient: 'citizen',
+            title: 'New Welfare Scheme Available',
+            message: `New welfare scheme '${body.schemeName}' has been launched under ${body.department}. Check your eligibility and apply now!`,
+            relatedEntityId: schemeIdStr,
+            relatedEntityType: 'WELFARE',
+            eventType: 'scheme-created',
+            recipientRole: 'CITIZEN'
+          });
+
+          window.dispatchEvent(new Event('refresh-notifications'));
+        } catch (err) {
+          console.error('Failed to emit welfare scheme creation notifications:', err);
+        }
       }
       setShowForm(false);
       load();
     } catch (e) {
-      toast.error(e.response?.data?.error || 'Save failed');
+      if (e.response?.status === 409) {
+        toast.error('Conflict: A welfare scheme with this name already exists. Please choose a unique name.');
+      } else {
+        toast.error(e.response?.data?.message || e.response?.data?.error || 'Save failed');
+      }
     } finally { setSaving(false); }
   };
 

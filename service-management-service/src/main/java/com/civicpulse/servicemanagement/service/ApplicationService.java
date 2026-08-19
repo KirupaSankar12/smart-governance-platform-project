@@ -413,6 +413,17 @@ public class ApplicationService {
         return historyRepo.findByApplicationIdOrderByTimestampAsc(applicationId);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // ACTIVE DUPLICATE PRE-CHECK
+    // ─────────────────────────────────────────────────────────────────────────
+    public Optional<ServiceApplication> checkActiveDuplicate(String serviceType, String aadhaarNumber) {
+        List<ApplicationStatus> activeStatuses = Arrays.asList(
+                ApplicationStatus.SUBMITTED, ApplicationStatus.UNDER_VERIFICATION, 
+                ApplicationStatus.VERIFIED, ApplicationStatus.APPROVED
+        );
+        return repo.findFirstByServiceTypeAndAadhaarNumberAndStatusIn(ServiceType.valueOf(serviceType), aadhaarNumber, activeStatuses);
+    }
+
     public AdminStatsResponse getStats() {
         List<ServiceApplication> all = repo.findAll();
 

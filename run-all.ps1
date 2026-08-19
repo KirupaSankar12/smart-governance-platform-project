@@ -25,24 +25,24 @@ if (-not (Test-Path ".\logs")) {
 # ── 2. Start Kafka ───────────────────────────────────────────
 Write-Host "Starting Kafka..."
 $env:KAFKA_HEAP_OPTS = "-Xmx256m -Xms256m"
-Start-Process -FilePath "d:\civic plus milestone\kafka_2.13-4.1.1\bin\windows\kafka-server-start.bat" `
+Start-Process -FilePath "$PSScriptRoot\kafka_2.13-4.1.1\bin\windows\kafka-server-start.bat" `
               -ArgumentList "..\..\config\server.properties" `
-              -WorkingDirectory "d:\civic plus milestone\kafka_2.13-4.1.1\bin\windows" `
+              -WorkingDirectory "$PSScriptRoot\kafka_2.13-4.1.1\bin\windows" `
               -WindowStyle Hidden `
-              -RedirectStandardOutput "d:\civic plus milestone\logs\kafka.out.log" `
-              -RedirectStandardError  "d:\civic plus milestone\logs\kafka.err.log"
+              -RedirectStandardOutput "$PSScriptRoot\logs\kafka.out.log" `
+              -RedirectStandardError  "$PSScriptRoot\logs\kafka.err.log"
 
 Start-Sleep -Seconds 10
 
 # ── 3. Start Keycloak ────────────────────────────────────────
 Write-Host "Starting Keycloak (port 8180)..."
 $env:JAVA_OPTS = "-Xms64m -Xmx256m"
-Start-Process -FilePath "d:\civic plus milestone\keycloak-26.6.4\bin\kc.bat" `
+Start-Process -FilePath "$PSScriptRoot\keycloak-26.6.4\bin\kc.bat" `
               -ArgumentList "start-dev --http-port=8180" `
-              -WorkingDirectory "d:\civic plus milestone\keycloak-26.6.4\bin" `
+              -WorkingDirectory "$PSScriptRoot\keycloak-26.6.4\bin" `
               -WindowStyle Hidden `
-              -RedirectStandardOutput "d:\civic plus milestone\logs\keycloak.out.log" `
-              -RedirectStandardError  "d:\civic plus milestone\logs\keycloak.err.log"
+              -RedirectStandardOutput "$PSScriptRoot\logs\keycloak.out.log" `
+              -RedirectStandardError  "$PSScriptRoot\logs\keycloak.err.log"
 
 Start-Sleep -Seconds 15
 

@@ -216,7 +216,45 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
         emily: 'Education Department'
       };
       
-      let dept = keycloak.tokenParsed?.department || OFFICER_DEPT_MAP[username.toLowerCase()] || '';
+      let parsed = keycloak.tokenParsed;
+      if (!parsed || !Object.keys(parsed).length) {
+        const token = localStorage.getItem('kc_token');
+        if (token) {
+          try { parsed = JSON.parse(atob(token.split('.')[1])); } catch (e) {}
+        }
+      }
+      const u = (parsed?.preferred_username || parsed?.username || parsed?.email || username || '').toLowerCase();
+      let dept = parsed?.department;
+
+      if (!dept) {
+        for (const [key, deptName] of Object.entries(OFFICER_DEPT_MAP)) {
+          if (u.includes(key)) {
+            dept = deptName;
+            break;
+          }
+        }
+        if (!dept) {
+          const deptKeywords = {
+            health: 'Health Department',
+            revenue: 'Revenue Department',
+            municipal: 'Municipal Corporation',
+            water: 'Water Department',
+            roads: 'Roads Department',
+            electricity: 'Electricity Department',
+            socialwelfare: 'Social Welfare Department',
+            welfare: 'Social Welfare Department',
+            urban: 'Urban Planning Department',
+            education: 'Education Department',
+            sanitation: 'Sanitation Department'
+          };
+          for (const [kw, deptName] of Object.entries(deptKeywords)) {
+            if (u.includes(kw)) {
+              dept = deptName;
+              break;
+            }
+          }
+        }
+      }
       if (dept) {
         setOfficerDept(dept);
       } else {
@@ -288,11 +326,11 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
         {/* Wordmark (hidden when collapsed) */}
         {!collapsed && (
           <div style={{ overflow: 'hidden', flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-              CivicPulse Nexus
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title="Smart Governance Platform">
+              Smart Governance Platform
             </div>
             <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 1 }}>
-              Government Portal
+              Government Administration
             </div>
           </div>
         )}

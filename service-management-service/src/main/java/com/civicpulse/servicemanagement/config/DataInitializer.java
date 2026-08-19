@@ -46,8 +46,9 @@ public class DataInitializer implements CommandLineRunner {
             new DepartmentOfficer("chris", "Chris Officer", "Water Department", "OFFICER"),
             new DepartmentOfficer("ethan", "Ethan Officer", "Roads Department", "OFFICER"),
             new DepartmentOfficer("jack", "Jack Officer", "Electricity Department", "OFFICER"),
-            new DepartmentOfficer("david", "David Officer", "Sanitation Department", "OFFICER"),
-            new DepartmentOfficer("will", "Will Officer", "Urban Planning Department", "OFFICER")
+            new DepartmentOfficer("david", "David Officer", "Social Welfare Department", "OFFICER"),
+            new DepartmentOfficer("will", "Will Officer", "Urban Planning Department", "OFFICER"),
+            new DepartmentOfficer("emily", "Emily Officer", "Education Department", "OFFICER")
         );
 
         for (DepartmentOfficer officer : defaultOfficers) {

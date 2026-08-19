@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { CheckCircle, RefreshCw, AlertTriangle, FileText, User, Users, Landmark, IndianRupee, HandHeart, Upload, FileCheck, X, Paperclip, ArrowRight, RotateCcw, ShieldCheck, Trash2, Printer } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import LocalTourOverlay from '../components/LocalTourOverlay.jsx';
 
 const STEPS = ['Application', 'Verification', 'Authority Approval', 'Disbursement', 'Success'];
 const DOCS = ['Aadhaar Card', 'Income Certificate', 'Bank Passbook', 'Photograph', 'Residence Proof'];
@@ -191,6 +192,40 @@ export default function SchemeApplicationForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
   const [duplicateData, setDuplicateData] = useState(null);
+  const [tourStep, setTourStep] = useState(null);
+
+  const TOUR_STEPS = [
+    {
+      step: 1,
+      targetKey: 'welfare-select-program',
+      title: '1. Select Welfare Program',
+      desc: 'Browse and choose the active government welfare scheme you are applying for. The system will display the eligibility criteria immediately.'
+    },
+    {
+      step: 2,
+      targetKey: 'welfare-personal-details',
+      title: '2. Personal Details',
+      desc: 'Fill out your name, contact details, age, and annual income. Real-time eligibility checks will run against the scheme rules.'
+    },
+    {
+      step: 3,
+      targetKey: 'welfare-bank-credentials',
+      title: '3. Direct Benefit Bank Credentials',
+      desc: 'Enter your bank account number and IFSC code. This ensures the funds are credited directly to your bank account via DBT once approved.'
+    },
+    {
+      step: 4,
+      targetKey: 'welfare-required-documents',
+      title: '4. Documents Verification',
+      desc: 'Tick the checklists and upload the required proof documents. Each document must be smaller than 5MB.'
+    },
+    {
+      step: 5,
+      targetKey: 'welfare-submit-button',
+      title: '5. Submit Application',
+      desc: 'Submit your welfare claim. If eligible, it is instantly routed to the Social Welfare Department for digital officer verification!'
+    }
+  ];
 
   const fetchSchemes = () => {
     setLoadingSchemes(true);
@@ -403,10 +438,50 @@ export default function SchemeApplicationForm() {
 
       localStorage.removeItem('welfare_app_draft');
       const selectedScheme = schemes.find(s => s.schemeId === form.schemeId);
+      const schemeTitle = res.data.schemeName || selectedScheme?.schemeName || 'Welfare Scheme';
+      const deptName = res.data.assignedDepartment || selectedScheme?.department || 'Health Department';
       setSubmitted({
         ...res.data,
-        schemeName: res.data.schemeName || selectedScheme?.schemeName || 'Welfare Scheme'
+        schemeName: schemeTitle
       });
+
+      // Officer username mapping
+      const OFFICER_MAP = {
+        'Health Department': 'john',
+        'Education Department': 'emily',
+        'Social Welfare Department': 'david',
+        'Revenue Department': 'mark',
+        'Municipal Corporation': 'ryan',
+        'Water Department': 'chris',
+        'Roads Department': 'ethan',
+        'Electricity Department': 'jack',
+        'Urban Planning Department': 'will'
+      };
+      const officerUser = OFFICER_MAP[deptName] || 'john';
+
+      // Emit Citizen Notification
+      api.post('/notification-service/api/notifications', {
+        recipient: form.citizenId || citizenId || 'CIT-001',
+        title: 'Welfare Application Submitted',
+        message: `Your application ${res.data.beneficiaryCode || ''} for ${schemeTitle} has been submitted successfully and assigned to ${deptName} for verification.`,
+        relatedEntityId: String(res.data.beneficiaryId || res.data.beneficiaryCode || ''),
+        relatedEntityType: 'WELFARE',
+        eventType: 'beneficiary-applied',
+        recipientRole: 'CITIZEN'
+      }).catch(() => {});
+
+      // Emit Officer Notification
+      api.post('/notification-service/api/notifications', {
+        recipient: officerUser,
+        title: 'New Welfare Application Assigned',
+        message: `Application ${res.data.beneficiaryCode || ''} (Applicant: ${form.applicantName}) submitted for ${schemeTitle} waiting for verification.`,
+        relatedEntityId: String(res.data.beneficiaryId || res.data.beneficiaryCode || ''),
+        relatedEntityType: 'WELFARE',
+        eventType: 'beneficiary-applied',
+        recipientRole: 'OFFICER'
+      }).catch(() => {});
+
+      window.dispatchEvent(new Event('refresh-notifications'));
       toast.success('Welfare application submitted successfully!');
     } catch (err) {
       if (err.response?.status === 409) {
@@ -527,7 +602,7 @@ export default function SchemeApplicationForm() {
       doc.setTextColor(100, 116, 139);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'italic');
-      doc.text("Verified & Issued Electronically by CivicPulse e-Governance Platform.", pageWidth / 2, finalY + 25, { align: 'center' });
+      doc.text("Verified & Issued Electronically by Smart Governance Platform.", pageWidth / 2, finalY + 25, { align: 'center' });
       
       doc.setFontSize(8);
       doc.text("This is a system-generated receipt and does not require a physical signature.", pageWidth / 2, finalY + 31, { align: 'center' });
@@ -852,9 +927,25 @@ export default function SchemeApplicationForm() {
             }}>
               WELFARE MODULE
             </span>
-            <h2 style={{ margin: '0 0 6px', fontSize: 26, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
-              Apply for Welfare Scheme
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <h2 style={{ margin: '0 0 6px', fontSize: 26, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
+                Apply for Welfare Scheme
+              </h2>
+              <button 
+                type="button"
+                onClick={() => setTourStep(1)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 800,
+                  background: 'rgba(168,85,247,0.25)', color: '#d8b4fe', border: '1px solid rgba(168,85,247,0.4)',
+                  cursor: 'pointer', transition: 'all 0.2s', marginTop: -6
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.35)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.25)'}
+              >
+                ❓ Guide Me
+              </button>
+            </div>
             <p style={{ margin: 0, color: '#cbd5e1', maxWidth: 540, fontSize: 14, lineHeight: 1.5 }}>
               Complete the verification form below. Your application will be cross-referenced with municipal databases for instant eligibility validation.
             </p>
@@ -864,7 +955,7 @@ export default function SchemeApplicationForm() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           
           {/* Card 1: Select Welfare Program */}
-          <div style={{
+          <div data-tour="welfare-select-program" style={{
             background: '#ffffff', borderRadius: 16, border: '1.5px solid #e2e8f0',
             boxShadow: '0 2px 8px rgba(15,23,42,0.04)', padding: '24px 28px',
             display: 'flex', flexDirection: 'column', gap: 20
@@ -987,7 +1078,7 @@ export default function SchemeApplicationForm() {
           </div>
 
           {/* Card 2: Applicant Profile */}
-          <div style={{
+          <div data-tour="welfare-personal-details" style={{
             background: '#ffffff', borderRadius: 16, border: '1.5px solid #e2e8f0',
             boxShadow: '0 2px 8px rgba(15,23,42,0.04)', padding: '24px 28px',
             display: 'flex', flexDirection: 'column', gap: 20
@@ -1106,7 +1197,7 @@ export default function SchemeApplicationForm() {
           </div>
 
           {/* Card 3B: Direct Benefit Transfer (DBT) Bank Account Details */}
-          <div style={{
+          <div data-tour="welfare-bank-credentials" style={{
             background: '#ffffff', borderRadius: 16, border: '1.5px solid #e2e8f0',
             boxShadow: '0 2px 8px rgba(15,23,42,0.04)', padding: '24px 28px',
             display: 'flex', flexDirection: 'column', gap: 20
@@ -1188,7 +1279,7 @@ export default function SchemeApplicationForm() {
           </div>
 
           {/* Card 4: Required Documentation Uploads & Checklist */}
-          <div style={{
+          <div data-tour="welfare-required-documents" style={{
             background: '#ffffff', borderRadius: 16, border: '1.5px solid #e2e8f0',
             boxShadow: '0 2px 8px rgba(15,23,42,0.04)', padding: '24px 28px',
             display: 'flex', flexDirection: 'column', gap: 20
@@ -1346,6 +1437,7 @@ export default function SchemeApplicationForm() {
                 </Button>
                 <Button 
                   type="submit" 
+                  data-tour="welfare-submit-button"
                   style={{
                     height: 42, borderRadius: 10, padding: '0 24px', fontWeight: 800, fontSize: 13,
                     background: isFormValid ? '#10b981' : '#cbd5e1', color: '#ffffff', border: 'none',
@@ -1360,6 +1452,14 @@ export default function SchemeApplicationForm() {
           </div>
 
         </form>
+        {tourStep !== null && (
+          <LocalTourOverlay 
+            steps={TOUR_STEPS}
+            activeStep={tourStep}
+            setActiveStep={setTourStep}
+            onClose={() => setTourStep(null)}
+          />
+        )}
       </div>
     </AppShell>
   );

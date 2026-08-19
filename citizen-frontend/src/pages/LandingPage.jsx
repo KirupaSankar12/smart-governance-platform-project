@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext.jsx';
+import api from '../api.js';
+import keycloak from '../keycloak.js';
+import LanguageSelector from '../components/LanguageSelector.jsx';
 import { 
   Landmark, AlertTriangle, Info, ShieldAlert, BadgeCheck,
   Droplets, Route, Zap, Trash2, HeartPulse, FileText, FileSignature, Building2,
@@ -8,67 +12,8 @@ import {
   PhoneCall, BookOpen, HelpCircle, ArrowRight, CheckCircle2, Award, Sparkles, ChevronRight,
   Users, Clock, MessageSquare, Send, ThumbsUp, Heart, Flame, Share2,
   QrCode, ExternalLink, RefreshCw, Filter, Sparkle, Bot, Shield, CheckCheck, Play, Eye,
-  X, MessageCircle, ChevronUp, ChevronDown, Check, CornerDownRight, Lock
+  X, MessageCircle, ChevronUp, ChevronDown, Check, CornerDownRight, Lock, Compass
 } from 'lucide-react';
-
-// ── Official Stories / Status Updates ──
-const civicStories = [
-  {
-    id: 1,
-    title: 'Monsoon Alert',
-    tag: 'URGENT',
-    department: 'Disaster Management',
-    borderColor: '#ef4444',
-    time: '15m ago',
-    icon: AlertTriangle,
-    headline: 'Monsoon Drainage Pre-Clearing Across 42 Wards',
-    details: 'Heavy rainfall alert issued for next 48 hours. Emergency drainage pumping stations are now active 24x7. Helpline 112 is fully operational.'
-  },
-  {
-    id: 2,
-    title: 'Water 2.0',
-    tag: 'UTILITY',
-    department: 'Water Supply Board',
-    borderColor: '#0284c7',
-    time: '1h ago',
-    icon: Droplets,
-    headline: 'Smart Ultrasonic Water Meters Installed in Sector 7-12',
-    details: 'Pipeline maintenance completed ahead of time. Digital flow monitors now provide real-time pressure updates to the central control grid.'
-  },
-  {
-    id: 3,
-    title: 'Digi-Cert',
-    tag: 'E-SERVICE',
-    department: 'Digital India / UIDAI',
-    borderColor: '#10b981',
-    time: '3h ago',
-    icon: BadgeCheck,
-    headline: 'Instant Residence & Income Certificates via DigiLocker',
-    details: 'Paperless digital signature verification now delivers approved certificates directly to citizen mobile wallets within 24 hours.'
-  },
-  {
-    id: 4,
-    title: 'Kisan Welfare',
-    tag: 'WELFARE',
-    department: 'Agriculture Dept',
-    borderColor: '#f59e0b',
-    time: '5h ago',
-    icon: Award,
-    headline: 'PM-Kisan Direct Benefit Transfer Phase 12 Disbursed',
-    details: 'Over 14,200 eligible state farmers received ₹2,000 direct bank transfer via Aadhaar-enabled payment bridge.'
-  },
-  {
-    id: 5,
-    title: 'AI Dispatch',
-    tag: 'TECH',
-    department: 'GovTech Innovations',
-    borderColor: '#8b5cf6',
-    time: 'Today',
-    icon: Bot,
-    headline: 'Autonomous Grievance Triaging & Officer Routing Live',
-    details: 'AI model automatically categorizes citizen photo grievances with 99.2% accuracy and assigns field officers within 120 seconds.'
-  }
-];
 
 // ── Quick Access Hero Action Cards ──
 const heroQuickActions = [
@@ -80,7 +25,8 @@ const heroQuickActions = [
     tagColor: '#ef4444',
     bgGradient: 'linear-gradient(135deg, rgba(239,68,68,0.1), rgba(239,68,68,0.02))',
     borderColor: 'rgba(239,68,68,0.22)',
-    to: '/login'
+    to: '/login',
+    tourKey: 'grievance'
   },
   {
     icon: FileText,
@@ -90,7 +36,8 @@ const heroQuickActions = [
     tagColor: '#2563eb',
     bgGradient: 'linear-gradient(135deg, rgba(37,99,235,0.1), rgba(37,99,235,0.02))',
     borderColor: 'rgba(37,99,235,0.22)',
-    to: '/login'
+    to: '/login',
+    tourKey: 'certificates'
   },
   {
     icon: Sparkles,
@@ -100,7 +47,8 @@ const heroQuickActions = [
     tagColor: '#f59e0b',
     bgGradient: 'linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.02))',
     borderColor: 'rgba(245,158,11,0.22)',
-    to: '/login'
+    to: '/login',
+    tourKey: 'welfare'
   },
   {
     icon: Search,
@@ -110,7 +58,8 @@ const heroQuickActions = [
     tagColor: '#10b981',
     bgGradient: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.02))',
     borderColor: 'rgba(16,185,129,0.22)',
-    to: '#tracker'
+    to: '#tracker',
+    tourKey: 'tracker-card'
   }
 ];
 
@@ -137,7 +86,7 @@ const initialNotices = [
     badgeColor: '#d97706',
     badgeBg: 'rgba(217, 119, 6, 0.12)',
     title: 'NH-48 Elevated Corridor Smart Resurfacing',
-    desc: 'Flyover maintenance underway. Heavy vehicles rerouted via Outer Ring Road. Live traffic updates broadcasted via CivicPulse GPS map.',
+    desc: 'Flyover maintenance underway. Heavy vehicles rerouted via Outer Ring Road. Live traffic updates broadcasted via Smart Governance GPS map.',
     date: 'Yesterday at 04:15 PM',
     author: 'Roads & Infrastructure Directorate',
     icon: Route,
@@ -224,18 +173,355 @@ const demoTrackingData = {
   }
 };
 
+// ── 9-Step Citizen Onboarding Tour Configurations ──
+const TOUR_STEPS = [
+  {
+    step: 1,
+    targetKey: 'hero-section',
+    title: 'Welcome to Smart Governance',
+    subtitle: 'Digital Public Services Portal',
+    desc: 'Welcome to your digital gateway for accessing citizen services, reporting civic issues, tracking complaints, applying for certificates, and accessing welfare services.',
+    icon: Landmark,
+    accentColor: '#2563eb'
+  },
+  {
+    step: 2,
+    targetKey: 'auth-actions',
+    title: 'Start Your Citizen Journey',
+    subtitle: 'Account & Single Sign-On Access',
+    desc: 'Create your citizen account to access digital services, submit complaints, track requests, and manage your applications. Already registered? Sign in to continue.',
+    icon: LogIn,
+    accentColor: '#8b5cf6'
+  },
+  {
+    step: 3,
+    targetKey: 'grievance',
+    title: 'Report Civic Issues',
+    subtitle: 'Direct Municipal Department Dispatch',
+    desc: 'Report problems such as water leaks, road damage, street-light failures, power outages, sanitation issues, and other civic concerns directly through the platform.',
+    additionalDesc: 'Your complaint can be assigned to the appropriate department and tracked until resolution. Similar complaints can be identified to help reduce duplicate reports.',
+    icon: PenSquare,
+    accentColor: '#ef4444'
+  },
+  {
+    step: 4,
+    targetKey: 'certificates',
+    title: 'Apply for Certificates Online',
+    subtitle: 'Instant e-Services',
+    desc: 'Apply for services such as Birth, Income, Residence, and other eligible certificates digitally without unnecessary office visits.',
+    badge: '100% Paperless',
+    icon: FileText,
+    accentColor: '#2563eb'
+  },
+  {
+    step: 5,
+    targetKey: 'welfare',
+    title: 'Access Welfare Services',
+    subtitle: 'Direct Benefit Transfer (DBT)',
+    desc: 'Explore eligible welfare schemes, pensions, scholarships, and other support services available through the digital platform.',
+    icon: Award,
+    accentColor: '#f59e0b'
+  },
+  {
+    step: 6,
+    targetKey: 'sla-tracker',
+    title: 'Track Your Complaint',
+    subtitle: 'Transparent Resolution Timeline',
+    desc: 'Once you submit a complaint, you can follow its progress, see its current status, view the assigned department or officer, and monitor the expected resolution timeline.',
+    icon: Clock,
+    accentColor: '#10b981'
+  },
+  {
+    step: 7,
+    targetKey: 'services',
+    title: 'Explore All Services',
+    subtitle: 'Centralized Municipal Catalog',
+    desc: 'Find municipal services in one place. Search or browse services by category such as Grievances, Certificates, Permits, and Welfare.',
+    additionalDesc: 'You can quickly find the service you need without searching through multiple government websites.',
+    icon: Sparkles,
+    accentColor: '#38bdf8'
+  },
+  {
+    step: 8,
+    targetKey: 'broadcasts',
+    title: 'Track Your Application',
+    subtitle: 'Citizen Service Tracker',
+    desc: 'Enter your Complaint ID or Application ID to check the latest status, assigned officer, department, SLA progress, certificate status, welfare approval, or payment information.',
+    icon: Search,
+    accentColor: '#2563eb'
+  },
+  {
+    step: 9,
+    targetKey: 'guided-tour',
+    title: 'Need Help?',
+    subtitle: 'Restart Tour & Help Resources',
+    desc: 'You can restart this guided tour whenever you need help understanding the platform. If an AI Assistant is available, you can also use it to ask questions about available services and navigation.',
+    icon: HelpCircle,
+    accentColor: '#8b5cf6'
+  }
+];
+
 export default function LandingPage() {
   const { theme: themeMode, toggleTheme } = useTheme();
+  const { t } = useTranslation();
   const isDark = themeMode === 'dark';
 
   // State Management
-  const [selectedStory, setSelectedStory] = useState(null);
+  const [tourStep, setTourStep] = useState(null);
+  const [tourBounds, setTourBounds] = useState(null);
+  const [showFirstTimeInvitation, setShowFirstTimeInvitation] = useState(false);
   const [noticesList, setNoticesList] = useState(initialNotices);
   const [userReactions, setUserReactions] = useState({});
   const [activeCategory, setActiveCategory] = useState('All');
   const [serviceSearch, setServiceSearch] = useState('');
   const [trackingIdInput, setTrackingIdInput] = useState('CP-2026-8941');
   const [activeTrackingResult, setActiveTrackingResult] = useState(demoTrackingData['CP-2026-8941']);
+  const [selectedTrackerCategory, setSelectedTrackerCategory] = useState('All');
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  const [trackingError, setTrackingError] = useState(null);
+
+  const handleTrackSubmit = async (e) => {
+    if (e) e.preventDefault();
+    const queryId = trackingIdInput.trim();
+    if (!queryId) return;
+
+    setTrackingLoading(true);
+    setTrackingError(null);
+
+    try {
+      // 1. Check if ID matches sample demo dataset (CP-2026-8941, CERT-2026-3392, WEL-2026-1032)
+      if (demoTrackingData[queryId]) {
+        setActiveTrackingResult(demoTrackingData[queryId]);
+        setTrackingLoading(false);
+        return;
+      }
+
+      // 2. Query real Backend APIs
+      const complaintRes = await api.get(`/grievance-service/api/complaints/${queryId}`).catch(() => null);
+      if (complaintRes?.data?.id || complaintRes?.data?.complaintId) {
+        const compData = complaintRes.data;
+        const historyRes = await api.get(`/grievance-service/api/complaints/${queryId}/history`).catch(() => null);
+
+        setActiveTrackingResult({
+          type: 'GRIEVANCE',
+          id: compData.complaintId || compData.id,
+          title: compData.title || compData.subject || compData.category || 'Civic Complaint',
+          status: compData.status || 'NEW',
+          department: compData.department || 'Municipal Department',
+          category: compData.category || 'General',
+          priority: compData.priority || 'MEDIUM',
+          assignedOfficer: compData.assignedOfficerName || compData.assignedOfficer || null,
+          slaStatus: compData.slaStatus || 'ON_TIME',
+          deadline: compData.slaDeadline ? new Date(compData.slaDeadline).toLocaleString() : '18 Aug 2026, 10:18 PM',
+          timeline: historyRes?.data?.length > 0 ? historyRes.data.map(h => ({
+            label: h.statusChange || h.remarks || 'Status Updated',
+            time: new Date(h.timestamp || h.createdAt).toLocaleString(),
+            done: true
+          })) : [
+            { label: 'Grievance Filed & Logged on Kafka Bus', done: true, time: new Date(compData.createdAt || Date.now()).toLocaleDateString() },
+            { label: compData.assignedOfficer ? 'Auto-Triaged & Assigned to Officer' : 'Awaiting Officer Assignment', done: Boolean(compData.assignedOfficer) },
+            { label: 'Field Investigation & Maintenance', done: compData.status === 'IN_PROGRESS' || compData.status === 'RESOLVED' },
+            { label: 'Resolution Verification & OTP Close', done: compData.status === 'RESOLVED' || compData.status === 'CLOSED' }
+          ]
+        });
+        setTrackingLoading(false);
+        return;
+      }
+
+      const certRes = await api.get(`/service-management-service/api/services/${queryId}`).catch(() => null);
+      if (certRes?.data?.id) {
+        const cert = certRes.data;
+        setActiveTrackingResult({
+          type: 'E-SERVICE',
+          id: cert.id,
+          title: cert.serviceType?.replace(/_/g, ' ') || 'Digital Certificate Application',
+          status: cert.status || 'UNDER VERIFICATION',
+          department: cert.department || 'Revenue Department',
+          assignedOfficer: cert.assignedOfficer || 'Assigned Officer',
+          timeline: [
+            { label: 'Application Submitted', done: true },
+            { label: 'Documents Received & DigiLocker Sync', done: true },
+            { label: 'Department Verification', done: cert.status === 'CERTIFICATE_GENERATED' || cert.status === 'APPROVED' },
+            { label: 'Certificate Approved & Download Ready', done: cert.status === 'CERTIFICATE_GENERATED' }
+          ]
+        });
+        setTrackingLoading(false);
+        return;
+      }
+
+      const welfareRes = await api.get(`/welfare-service/api/welfare/beneficiaries/${queryId}`).catch(() => null);
+      if (welfareRes?.data?.id) {
+        const wel = welfareRes.data;
+        setActiveTrackingResult({
+          type: 'WELFARE',
+          id: wel.id,
+          title: wel.schemeName || 'State Welfare Support Scheme',
+          status: wel.status || 'APPROVED',
+          department: 'Social Welfare Department',
+          eligibility: wel.eligibilityStatus || 'APPROVED',
+          applicationStatus: wel.applicationStatus || 'APPROVED',
+          paymentStatus: wel.paymentStatus || 'PROCESSING',
+          amount: wel.amount ? `₹${wel.amount.toLocaleString()}` : '₹2,000',
+          timeline: [
+            { label: 'Application Submitted', done: true },
+            { label: 'Eligibility Verified via Aadhaar', done: true },
+            { label: 'Application Approved by Admin', done: true },
+            { label: 'Direct Benefit Transfer (DBT) Processing', done: true },
+            { label: 'Payment Credited to Bank Account', done: wel.paymentStatus === 'CREDITED' }
+          ]
+        });
+        setTrackingLoading(false);
+        return;
+      }
+
+      setActiveTrackingResult(null);
+      setTrackingError('NOT_FOUND');
+      setTrackingLoading(false);
+
+    } catch (err) {
+      console.error('Service tracker error:', err);
+      setActiveTrackingResult(null);
+      setTrackingError('API_ERROR');
+      setTrackingLoading(false);
+    }
+  };
+
+  // Real Citizen Data State for Authenticated Users
+  const [userComplaints, setUserComplaints] = useState([]);
+  const [userCertificates, setUserCertificates] = useState([]);
+  const [userWelfareApps, setUserWelfareApps] = useState([]);
+  const [isUserDataLoading, setIsUserDataLoading] = useState(false);
+
+  const isAuthenticated = Boolean(keycloak?.authenticated || localStorage.getItem('kc_token'));
+  const citizenId = keycloak?.tokenParsed?.sub;
+  const citizenName = keycloak?.tokenParsed?.name || keycloak?.tokenParsed?.preferred_username || '';
+
+  useEffect(() => {
+    if (isAuthenticated && citizenId) {
+      setIsUserDataLoading(true);
+      Promise.all([
+        api.get('/grievance-service/api/complaints').catch(() => ({ data: [] })),
+        api.get(`/service-management-service/api/services/citizen/${citizenId}`).catch(() => ({ data: [] })),
+        api.get(`/welfare-service/api/welfare/beneficiaries/citizen/${citizenId}`).catch(() => ({ data: [] }))
+      ]).then(([cRes, certRes, wRes]) => {
+        setUserComplaints(cRes.data || []);
+        setUserCertificates(certRes.data || []);
+        setUserWelfareApps(wRes.data || []);
+        setIsUserDataLoading(false);
+      });
+    }
+  }, [isAuthenticated, citizenId]);
+
+  // Tour Target Highlight Elevation & Bounds Hook
+  useEffect(() => {
+    if (typeof tourStep !== 'number') {
+      setTourBounds(null);
+      return;
+    }
+    const stepConfig = TOUR_STEPS.find(s => s.step === tourStep);
+    if (!stepConfig) return;
+
+    const el = document.querySelector(`[data-tour="${stepConfig.targetKey}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // Save original styles
+      const origPos = el.style.position;
+      const origZIndex = el.style.zIndex;
+      const origBoxShadow = el.style.boxShadow;
+      const origTransition = el.style.transition;
+      const origRadius = el.style.borderRadius;
+      const origBg = el.style.background;
+      const origPadding = el.style.padding;
+
+      // ILLUMINATED WHITE / HIGH-CONTRAST CONTAINER HIGHLIGHT STYLING
+      el.style.position = 'relative';
+      el.style.zIndex = '10000';
+      
+      // Ensure target element has a crisp, bright white/slate container background during the tour
+      if (!origBg || origBg === 'transparent' || origBg.includes('radial-gradient')) {
+        el.style.background = isDark ? '#0f172a' : '#ffffff';
+      }
+      
+      el.style.boxShadow = isDark 
+        ? '0 0 0 4px #38bdf8, 0 16px 50px rgba(56,189,248,0.35), 0 0 80px rgba(255,255,255,0.15)' 
+        : '0 0 0 4px #2563eb, 0 16px 50px rgba(37,99,235,0.35), 0 0 60px rgba(255,255,255,0.9)';
+      
+      if (!origRadius) el.style.borderRadius = '20px';
+      if (!origPadding && stepConfig.targetKey === 'auth-actions') el.style.padding = '12px 18px';
+      el.style.transition = 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+
+      const timer = setTimeout(() => {
+        const rect = el.getBoundingClientRect();
+        setTourBounds({
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+          bottom: rect.bottom,
+          right: rect.right
+        });
+      }, 300);
+
+      return () => {
+        clearTimeout(timer);
+        // Restore exact previous styles
+        el.style.position = origPos;
+        el.style.zIndex = origZIndex;
+        el.style.boxShadow = origBoxShadow;
+        el.style.transition = origTransition;
+        el.style.borderRadius = origRadius;
+        el.style.background = origBg;
+        el.style.padding = origPadding;
+      };
+    } else {
+      setTourBounds(null);
+    }
+  }, [tourStep]);
+
+  // First-time visitor toast check
+  useEffect(() => {
+    const status = localStorage.getItem('civicpulse_guided_tour_completed');
+    if (!status) {
+      const timer = setTimeout(() => setShowFirstTimeInvitation(true), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  // Keyboard navigation (Esc, ArrowRight, ArrowLeft, Enter)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (tourStep === null) return;
+      if (e.key === 'Escape') {
+        localStorage.setItem('civicpulse_guided_tour_completed', 'skipped');
+        setTourStep(null);
+      } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        if (typeof tourStep === 'number') {
+          if (tourStep < 9) setTourStep(prev => prev + 1);
+          else {
+            localStorage.setItem('civicpulse_guided_tour_completed', 'completed');
+            setTourStep('completed');
+          }
+        }
+      } else if (e.key === 'ArrowLeft') {
+        if (typeof tourStep === 'number' && tourStep > 1) {
+          setTourStep(prev => prev - 1);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [tourStep]);
+
+  const handleSkipTour = () => {
+    localStorage.setItem('civicpulse_guided_tour_completed', 'skipped');
+    setTourStep(null);
+  };
+
+  const handleFinishTour = () => {
+    localStorage.setItem('civicpulse_guided_tour_completed', 'completed');
+    setTourStep('completed');
+  };
   
   // Floating AI Chat State
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -243,7 +529,7 @@ export default function LandingPage() {
     {
       id: 1,
       sender: 'bot',
-      text: 'Namaste! 🙏 Welcome to CivicPulse Nexus Smart Citizen Desk. How may I assist your governance request today?',
+      text: 'Namaste! 🙏 Welcome to Smart Governance Platform Citizen Desk. How may I assist your governance request today?',
       time: 'Just now',
       chips: ['Track Complaint', 'Apply Certificate', 'Sanitation Issue', 'Welfare Schemes']
     }
@@ -350,16 +636,20 @@ export default function LandingPage() {
       <div style={{
         background: isDark ? '#050811' : '#0f172a',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
-        padding: '8px 24px',
+        padding: '8px 20px',
         fontSize: 12,
         fontWeight: 600,
-        color: '#94a3b8',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 12
+        color: '#94a3b8'
       }}>
+        <div style={{
+          maxWidth: 1720,
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12
+        }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: 6, color: '#f8fafc', fontWeight: 700 }}>
             <span>🇮🇳</span>
@@ -385,6 +675,7 @@ export default function LandingPage() {
             <span>24×7 Toll-Free: <strong>1800-11-2026</strong></span>
           </div>
         </div>
+        </div>
       </div>
 
       {/* ── 2. Floating App-Style Glass Navigation Bar ── */}
@@ -396,13 +687,18 @@ export default function LandingPage() {
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(226, 232, 240, 0.9)',
-        padding: '0 32px',
+        padding: '0 20px',
         height: 68,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.5)' : '0 4px 20px rgba(0,0,0,0.04)'
       }}>
+        <div style={{
+          maxWidth: 1720,
+          margin: '0 auto',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
         {/* Brand Logo */}
         <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
@@ -429,7 +725,7 @@ export default function LandingPage() {
               gap: 6,
               lineHeight: 1.2
             }}>
-              CivicPulse <span style={{ color: '#2563eb' }}>Nexus</span>
+              Smart Governance <span style={{ color: '#2563eb' }}>Platform</span>
               <span style={{ 
                 fontSize: 9, 
                 fontWeight: 800, 
@@ -449,16 +745,16 @@ export default function LandingPage() {
         {/* Center Nav Links */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 28, fontSize: 13, fontWeight: 700 }}>
           <a href="#feed" style={{ color: isDark ? '#cbd5e1' : '#475569', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, transition: 'color 0.2s' }}>
-            <Bell size={15} style={{ color: '#38bdf8' }} /> Bulletins
-          </a>
-          <a href="#services" style={{ color: isDark ? '#cbd5e1' : '#475569', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, transition: 'color 0.2s' }}>
-            <Sparkles size={15} style={{ color: '#f59e0b' }} /> Service Hub
+            <Bell size={15} style={{ color: '#38bdf8' }} /> {t('nav.bulletins')}
           </a>
           <a href="#tracker" style={{ color: isDark ? '#cbd5e1' : '#475569', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, transition: 'color 0.2s' }}>
-            <Search size={15} style={{ color: '#10b981' }} /> SLA Tracker
+            <Search size={15} style={{ color: '#10b981' }} /> {t('nav.slaTracker')}
+          </a>
+          <a href="#services" style={{ color: isDark ? '#cbd5e1' : '#475569', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, transition: 'color 0.2s' }}>
+            <Sparkles size={15} style={{ color: '#f59e0b' }} /> {t('nav.serviceHub')}
           </a>
           <button
-            onClick={() => setIsChatOpen(true)}
+            onClick={() => setTourStep(1)}
             style={{ 
               background: 'transparent',
               border: 'none',
@@ -471,12 +767,15 @@ export default function LandingPage() {
               fontWeight: 700 
             }}
           >
-            <Bot size={15} style={{ color: '#a855f7' }} /> AI Assistant
+            <Compass size={15} style={{ color: '#a855f7' }} /> {t('nav.guidedTour')}
           </button>
         </div>
 
         {/* Right Nav Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Language Selector Dropdown */}
+          <LanguageSelector />
+
           <button
             onClick={toggleTheme}
             style={{
@@ -512,7 +811,7 @@ export default function LandingPage() {
               alignItems: 'center',
               gap: 7
             }}>
-              <LogIn size={15} /> Sign In
+              <LogIn size={15} /> {t('nav.signIn')}
             </button>
           </Link>
 
@@ -530,319 +829,204 @@ export default function LandingPage() {
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 6
+              gap: 7
             }}>
-              Register <ArrowRight size={14} />
+              <PenSquare size={15} /> {t('nav.register')}
             </button>
           </Link>
         </div>
+        </div>
       </nav>
 
-      {/* ── 3. Stories Reel ── */}
-      <div style={{
-        background: isDark ? '#0c111c' : '#ffffff',
-        borderBottom: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0',
-        padding: '12px 32px',
-        overflowX: 'auto'
-      }} className="civic-scrollbar">
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 20, minWidth: 'max-content' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingRight: 16, borderRight: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0' }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #f59e0b)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-              <Sparkles size={16} />
-            </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', lineHeight: 1.2 }}>Live Stories</div>
-              <div style={{ fontSize: 10, color: isDark ? '#94a3b8' : '#64748b' }}>Official Highlights</div>
-            </div>
-          </div>
-
-          {civicStories.map(story => {
-            const StoryIcon = story.icon;
-            return (
-              <div 
-                key={story.id}
-                onClick={() => setSelectedStory(story)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  cursor: 'pointer',
-                  padding: '5px 14px 5px 6px',
-                  borderRadius: 24,
-                  background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
-                  border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = story.borderColor; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'; }}
-              >
-                <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  padding: 2,
-                  background: `linear-gradient(135deg, ${story.borderColor}, #38bdf8)`,
-                  flexShrink: 0
-                }}>
-                  <div style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    background: isDark ? '#0f172a' : '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: story.borderColor
-                  }}>
-                    <StoryIcon size={16} />
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1.2 }}>
-                    {story.title}
-                    <span style={{ fontSize: 9, fontWeight: 800, color: story.borderColor }}>• {story.tag}</span>
-                  </div>
-                  <div style={{ fontSize: 10, color: isDark ? '#94a3b8' : '#64748b', marginTop: 2 }}>{story.department}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Story Modal Preview ── */}
-      {selectedStory && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.8)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 20
-        }} onClick={() => setSelectedStory(null)}>
-          <div style={{
-            width: '100%',
-            maxWidth: 460,
-            background: isDark ? '#0f172a' : '#ffffff',
-            borderRadius: 20,
-            padding: 24,
-            border: '1px solid rgba(255,255,255,0.15)',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
-            position: 'relative'
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ background: selectedStory.borderColor, color: '#fff', fontSize: 10, fontWeight: 900, padding: '3px 8px', borderRadius: 6 }}>
-                  {selectedStory.tag}
-                </span>
-                <span style={{ fontSize: 12, color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>{selectedStory.time}</span>
-              </div>
-              <button onClick={() => setSelectedStory(null)} style={{ background: 'transparent', border: 'none', color: isDark ? '#94a3b8' : '#64748b', fontSize: 18, cursor: 'pointer', fontWeight: 800 }}>✕</button>
-            </div>
-            <h3 style={{ fontSize: 18, fontWeight: 900, margin: '0 0 10px', color: isDark ? '#ffffff' : '#0f172a', lineHeight: 1.35 }}>
-              {selectedStory.headline}
-            </h3>
-            <p style={{ fontSize: 13.5, color: isDark ? '#cbd5e1' : '#475569', lineHeight: 1.6, margin: '0 0 20px' }}>
-              {selectedStory.details}
-            </p>
-            <Link to="/login" style={{ textDecoration: 'none' }}>
-              <button style={{
-                width: '100%',
-                height: 42,
-                borderRadius: 10,
-                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                color: '#fff',
-                fontWeight: 800,
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 13
-              }}>
-                View Official Notice in Portal
-              </button>
-            </Link>
-          </div>
-        </div>
-      )}
-
       {/* ── 4. Extended Full-Width Hero Section ── */}
-      <section style={{
-        padding: '50px 32px 60px',
+      <section data-tour="hero-section" style={{
+        padding: '44px 24px 60px',
         position: 'relative',
         overflow: 'hidden',
         borderBottom: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0',
         background: isDark 
-          ? 'radial-gradient(ellipse at 30% 20%, rgba(37,99,235,0.14), transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(168,85,247,0.08), transparent 60%), #090d16'
-          : 'radial-gradient(ellipse at 30% 20%, rgba(224,242,254,0.7), transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(243,232,255,0.5), transparent 60%), #f8fafc'
+          ? 'radial-gradient(ellipse at 25% 20%, rgba(37,99,235,0.18), transparent 60%), radial-gradient(ellipse at 75% 80%, rgba(139,92,246,0.12), transparent 60%), #090d16'
+          : 'radial-gradient(ellipse at 25% 20%, rgba(219,234,254,0.8), transparent 60%), radial-gradient(ellipse at 75% 80%, rgba(237,233,254,0.6), transparent 60%), #f8fafc'
       }}>
         <div style={{ 
-          maxWidth: 1280, 
+          maxWidth: 1680, 
           margin: '0 auto', 
           display: 'flex',
           flexDirection: 'column',
-          gap: 36
+          gap: 40
         }}>
           
-          {/* Hero Main Header & Fast Action Hub Row */}
+          {/* Hero Main Header & Digital Citizen Pass Row */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.35fr) minmax(0, 1fr)',
-            gap: 40,
-            alignItems: 'center'
+            gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 1fr)',
+            gap: 48,
+            alignItems: 'stretch'
           }}>
-            {/* Left Big Heading */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            
+            {/* Left Column: Headline, Description & Call to Actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 20 }}>
               <div>
                 <span style={{
-                  background: isDark ? 'rgba(37,99,235,0.15)' : '#eff6ff',
+                  background: isDark ? 'rgba(37,99,235,0.16)' : '#eff6ff',
                   color: isDark ? '#60a5fa' : '#2563eb',
-                  border: isDark ? '1px solid rgba(37,99,235,0.3)' : '1px solid #bfdbfe',
-                  padding: '6px 14px',
-                  borderRadius: 20,
-                  fontSize: 12,
+                  border: isDark ? '1px solid rgba(37,99,235,0.35)' : '1px solid #bfdbfe',
+                  padding: '7px 16px',
+                  borderRadius: 30,
+                  fontSize: 12.5,
                   fontWeight: 800,
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 8
+                  gap: 8,
+                  boxShadow: '0 2px 10px rgba(37,99,235,0.1)'
                 }}>
-                  <Sparkle size={14} style={{ color: '#38bdf8' }} />
-                  <span>Next-Gen Smart Governance Portal • 2026 Edition</span>
+                  <Sparkles size={14} style={{ color: '#38bdf8' }} />
+                  <span>{t('hero.title')}</span>
                 </span>
               </div>
 
               <h1 style={{ 
                 margin: 0, 
-                fontSize: 44, 
+                fontSize: 46, 
                 fontWeight: 900, 
-                lineHeight: 1.15, 
+                lineHeight: 1.14, 
                 letterSpacing: '-0.035em', 
                 color: isDark ? '#ffffff' : '#0f172a' 
               }}>
-                Your Gateway to <br />
+                {t('hero.subtitlePrefix')} <br />
                 <span style={{
-                  background: 'linear-gradient(135deg, #38bdf8 0%, #2563eb 50%, #7c3aed 100%)',
+                  background: 'linear-gradient(135deg, #38bdf8 0%, #2563eb 40%, #8b5cf6 100%)',
                   WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
+                  WebkitTextFillColor: 'transparent',
+                  display: 'inline-block'
                 }}>
-                  Smart, Instant & Accountable
+                  {t('hero.subtitleHighlight')}
                 </span> <br />
-                Governance.
+                {t('hero.subtitleSuffix')}
               </h1>
 
               <p style={{ 
                 margin: 0, 
-                fontSize: 15.5, 
+                fontSize: 16, 
                 color: isDark ? '#94a3b8' : '#475569', 
                 lineHeight: 1.65, 
-                maxWidth: 620 
+                maxWidth: 640 
               }}>
-                CivicPulse Nexus is a cloud-native digital public infrastructure connecting 4,200+ citizens with municipal departments. File grievances with automated SLA tracking, apply for verified certificates, and claim welfare schemes — 100% paperless.
+                {t('hero.desc')}
               </p>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', paddingTop: 6 }}>
+              <div data-tour="auth-actions" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', paddingTop: 10, alignItems: 'center' }}>
                 <Link to="/register" style={{ textDecoration: 'none' }}>
                   <button style={{
-                    height: 48,
-                    padding: '0 26px',
-                    borderRadius: 12,
+                    height: 50,
+                    padding: '0 28px',
+                    borderRadius: 14,
                     background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
                     color: '#ffffff',
                     border: 'none',
                     fontWeight: 800,
-                    fontSize: 14,
-                    boxShadow: '0 8px 22px rgba(37,99,235,0.38)',
+                    fontSize: 14.5,
+                    boxShadow: '0 10px 25px rgba(37,99,235,0.35)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8
+                    gap: 10,
+                    transition: 'all 0.2s ease'
                   }}>
-                    <PenSquare size={16} /> Register as Citizen <ArrowRight size={15} />
+                    <PenSquare size={17} /> {t('hero.registerBtn')} <ArrowRight size={16} />
                   </button>
                 </Link>
 
                 <Link to="/login" style={{ textDecoration: 'none' }}>
                   <button style={{
-                    height: 48,
-                    padding: '0 22px',
-                    borderRadius: 12,
+                    height: 50,
+                    padding: '0 24px',
+                    borderRadius: 14,
                     background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
                     color: isDark ? '#ffffff' : '#0f172a',
-                    border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1',
+                    border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1',
+                    fontWeight: 800,
+                    fontSize: 14.5,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.04)',
+                    transition: 'all 0.2s ease'
+                  }}>
+                    <LogIn size={17} /> {t('hero.signInBtn')}
+                  </button>
+                </Link>
+
+                <button
+                  onClick={() => setTourStep(1)}
+                  style={{
+                    height: 50,
+                    padding: '0 20px',
+                    borderRadius: 14,
+                    background: isDark ? 'rgba(168,85,247,0.14)' : '#f3e8ff',
+                    color: isDark ? '#c084fc' : '#7e22ce',
+                    border: isDark ? '1.5px solid rgba(168,85,247,0.35)' : '1.5px solid #e9d5ff',
                     fontWeight: 800,
                     fontSize: 14,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8
-                  }}>
-                    <LogIn size={16} /> Citizen Sign In
-                  </button>
-                </Link>
-
-                <button
-                  onClick={() => setIsChatOpen(true)}
-                  style={{
-                    height: 48,
-                    padding: '0 18px',
-                    borderRadius: 12,
-                    background: isDark ? 'rgba(168,85,247,0.12)' : '#f3e8ff',
-                    color: '#9333ea',
-                    border: isDark ? '1px solid rgba(168,85,247,0.3)' : '1px solid #e9d5ff',
-                    fontWeight: 800,
-                    fontSize: 13.5,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8
+                    gap: 8,
+                    transition: 'all 0.2s ease'
                   }}
                 >
-                  <Bot size={17} /> Ask AI Assistant
+                  <Compass size={17} style={{ color: '#a855f7' }} /> {t('hero.tourBtn')}
                 </button>
               </div>
             </div>
 
-            {/* Right Side — High-End Citizen Digital Pass & Trust Hologram Card */}
+            {/* Right Column — Premium Digital Citizen Pass Hologram Card */}
             <div style={{
               background: isDark 
-                ? 'linear-gradient(145deg, rgba(30,58,138,0.3) 0%, rgba(15,23,42,0.9) 100%)' 
+                ? 'linear-gradient(145deg, rgba(30,58,138,0.35) 0%, rgba(15,23,42,0.95) 100%)' 
                 : 'linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%)',
               borderRadius: 24,
-              padding: '28px',
-              border: isDark ? '1.5px solid rgba(56,189,248,0.25)' : '1.5px solid #bfdbfe',
-              boxShadow: isDark ? '0 20px 45px rgba(0,0,0,0.5)' : '0 16px 36px rgba(37,99,235,0.08)',
+              padding: '32px',
+              border: isDark ? '1.5px solid rgba(56,189,248,0.3)' : '1.5px solid #bfdbfe',
+              boxShadow: isDark ? '0 25px 50px rgba(0,0,0,0.6)' : '0 20px 40px rgba(37,99,235,0.08)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 20,
+              justifyContent: 'space-between',
+              gap: 22,
               position: 'relative',
               overflow: 'hidden'
             }}>
-              {/* Top Card Badge */}
+              {/* Subtle Background Pattern */}
+              <div style={{
+                position: 'absolute', top: -60, right: -60, width: 220, height: 220,
+                background: 'radial-gradient(circle, rgba(56,189,248,0.15) 0%, transparent 70%)',
+                pointerEvents: 'none'
+              }} />
+
+              {/* Top Card Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 10,
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
                     background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#fff',
-                    boxShadow: '0 4px 12px rgba(37,99,235,0.4)'
+                    boxShadow: '0 6px 16px rgba(37,99,235,0.4)',
+                    flexShrink: 0
                   }}>
-                    <Landmark size={20} />
+                    <Landmark size={22} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', letterSpacing: '0.02em' }}>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', letterSpacing: '0.04em' }}>
                       DIGITAL CITIZEN PASS
                     </div>
-                    <div style={{ fontSize: 10, color: isDark ? '#38bdf8' : '#0284c7', fontWeight: 700 }}>
+                    <div style={{ fontSize: 11, color: isDark ? '#38bdf8' : '#0284c7', fontWeight: 700 }}>
                       Verified Gov-Tech SSO Gateway
                     </div>
                   </div>
@@ -850,90 +1034,97 @@ export default function LandingPage() {
 
                 <div style={{
                   background: 'rgba(34,197,94,0.15)',
-                  color: '#22c55e',
-                  border: '1px solid rgba(34,197,94,0.3)',
-                  padding: '4px 10px',
+                  color: '#16a34a',
+                  border: '1.5px solid rgba(34,197,94,0.3)',
+                  padding: '5px 12px',
                   borderRadius: 20,
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: 800,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 5
+                  gap: 6
                 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} className="civic-pulse-badge" />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e' }} className="civic-pulse-badge" />
                   AUTHENTICATED
                 </div>
               </div>
 
-              {/* 4 Interactive Feature Highlights */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {/* 4 Interactive Feature Highlight Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div style={{
                   background: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
-                  borderRadius: 14,
-                  padding: '12px 14px',
-                  border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0'
+                  borderRadius: 16,
+                  padding: '14px 16px',
+                  border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#38bdf8', fontSize: 11, fontWeight: 800 }}>
-                    <ShieldCheck size={14} /> DigiLocker
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#38bdf8', fontSize: 11.5, fontWeight: 800 }}>
+                    <ShieldCheck size={15} /> DigiLocker
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', marginTop: 4 }}>QR Signed Certs</div>
-                  <div style={{ fontSize: 10, color: isDark ? '#94a3b8' : '#64748b' }}>Zero physical office visits</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', marginTop: 4 }}>QR Signed Certs</div>
+                  <div style={{ fontSize: 10.5, color: isDark ? '#94a3b8' : '#64748b', marginTop: 2 }}>Zero physical office visits</div>
                 </div>
 
                 <div style={{
                   background: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
-                  borderRadius: 14,
-                  padding: '12px 14px',
-                  border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0'
+                  borderRadius: 16,
+                  padding: '14px 16px',
+                  border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f59e0b', fontSize: 11, fontWeight: 800 }}>
-                    <Clock size={14} /> SLA Engine
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f59e0b', fontSize: 11.5, fontWeight: 800 }}>
+                    <Clock size={15} /> SLA Engine
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', marginTop: 4 }}>Auto Escalations</div>
-                  <div style={{ fontSize: 10, color: isDark ? '#94a3b8' : '#64748b' }}>Guaranteed response time</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', marginTop: 4 }}>Auto Escalations</div>
+                  <div style={{ fontSize: 10.5, color: isDark ? '#94a3b8' : '#64748b', marginTop: 2 }}>Guaranteed response time</div>
                 </div>
 
                 <div style={{
                   background: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
-                  borderRadius: 14,
-                  padding: '12px 14px',
-                  border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0'
+                  borderRadius: 16,
+                  padding: '14px 16px',
+                  border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#10b981', fontSize: 11, fontWeight: 800 }}>
-                    <Award size={14} /> Direct DBT
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#10b981', fontSize: 11.5, fontWeight: 800 }}>
+                    <Award size={15} /> Direct DBT
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', marginTop: 4 }}>Welfare Payouts</div>
-                  <div style={{ fontSize: 10, color: isDark ? '#94a3b8' : '#64748b' }}>Direct Aadhaar bank credit</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', marginTop: 4 }}>Welfare Payouts</div>
+                  <div style={{ fontSize: 10.5, color: isDark ? '#94a3b8' : '#64748b', marginTop: 2 }}>Direct Aadhaar bank credit</div>
                 </div>
 
                 <div style={{
                   background: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
-                  borderRadius: 14,
-                  padding: '12px 14px',
-                  border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0'
+                  borderRadius: 16,
+                  padding: '14px 16px',
+                  border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#a855f7', fontSize: 11, fontWeight: 800 }}>
-                    <Lock size={14} /> Keycloak SSO
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#a855f7', fontSize: 11.5, fontWeight: 800 }}>
+                    <Lock size={15} /> Keycloak SSO
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', marginTop: 4 }}>256-Bit Security</div>
-                  <div style={{ fontSize: 10, color: isDark ? '#94a3b8' : '#64748b' }}>Multi-factor identity</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', marginTop: 4 }}>256-Bit Security</div>
+                  <div style={{ fontSize: 10.5, color: isDark ? '#94a3b8' : '#64748b', marginTop: 2 }}>Multi-factor identity</div>
                 </div>
               </div>
 
-              {/* Bottom Card Security Stamp */}
+              {/* Bottom Security Stamp */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                borderTop: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
-                paddingTop: 14,
-                fontSize: 11,
-                color: isDark ? '#94a3b8' : '#64748b'
+                borderTop: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0',
+                paddingTop: 16,
+                fontSize: 12,
+                color: isDark ? '#cbd5e1' : '#475569',
+                fontWeight: 700
               }}>
-                <span>🇮🇳 National Informatics Grid</span>
-                <span style={{ color: '#22c55e', fontWeight: 700 }}>● 99.98% System Uptime</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  🇮🇳 National Informatics Grid
+                </span>
+                <span style={{ color: '#16a34a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e' }} className="civic-pulse-badge" />
+                  99.98% System Uptime
+                </span>
               </div>
             </div>
+
           </div>
 
           {/* ── Extended 4-Column Stats Showcase Row ── */}
@@ -1057,7 +1248,7 @@ export default function LandingPage() {
                   to={act.to}
                   style={{ textDecoration: 'none' }}
                 >
-                  <div style={{
+                  <div data-tour={act.tourKey} style={{
                     background: act.bgGradient,
                     borderRadius: 16,
                     padding: '20px',
@@ -1123,372 +1314,646 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── 5. Official Broadcast Bulletins Feed ── */}
-      <section id="feed" style={{
-        padding: '65px 32px',
+      {/* ── 5. CITIZEN SERVICE TRACKER SECTION ── */}
+      <section id="feed" data-tour="broadcasts" style={{
+        padding: '50px 20px',
         background: isDark ? '#0c111c' : '#ffffff',
         borderBottom: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0'
       }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28 }}>
+        <div style={{ maxWidth: 1720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 32 }}>
           
+          {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16 }}>
             <div>
-              <span style={{ color: '#0284c7', fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                📢 OFFICIAL BROADCAST CHANNEL
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ color: '#2563eb', fontSize: 12, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  {t('tracker.title')}
+                </span>
+                <span style={{
+                  background: 'rgba(34,197,94,0.14)', color: '#16a34a', padding: '3px 10px',
+                  borderRadius: 20, fontSize: 11, fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid rgba(34,197,94,0.3)'
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                  {t('quickActions.live')}
+                </span>
+              </div>
+              
               <h2 style={{ margin: '6px 0 0', fontSize: 28, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', letterSpacing: '-0.02em' }}>
-                Live Citizen Announcements & Advisories
+                {t('tracker.subtitle')}
               </h2>
             </div>
-            
-            <Link to="/login" style={{ textDecoration: 'none' }}>
-              <button style={{
-                height: 38,
-                padding: '0 16px',
-                borderRadius: 10,
-                background: isDark ? 'rgba(56,189,248,0.1)' : '#eff6ff',
-                color: '#0284c7',
-                border: '1px solid #bae6fd',
-                fontWeight: 800,
-                fontSize: 12,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6
-              }}>
-                View All Official Notices <ChevronRight size={14} />
-              </button>
-            </Link>
+
+            {isAuthenticated && (
+              <div style={{ fontSize: 12, fontWeight: 800, color: isDark ? '#94a3b8' : '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ShieldCheck size={16} style={{ color: '#10b981' }} /> {t('quickActions.verifiedProfile')}
+              </div>
+            )}
           </div>
 
-          {/* 2-Column Grid of Broadcast Posts */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20 }}>
-            {noticesList.map(notice => {
-              const NoticeIcon = notice.icon;
-              return (
-                <div 
-                  key={notice.id}
+          {/* MAIN PROMINENT TRACKING INPUT CARD */}
+          <div style={{
+            background: isDark ? '#111827' : '#ffffff',
+            borderRadius: 24,
+            padding: '32px 28px',
+            border: isDark ? '1.5px solid rgba(255,255,255,0.12)' : '1.5px solid #cbd5e1',
+            boxShadow: isDark ? '0 15px 40px rgba(0,0,0,0.4)' : '0 10px 30px rgba(37,99,235,0.06)',
+            display: 'flex', flexDirection: 'column', gap: 20
+          }} className="civic-glass-card">
+            
+            <form onSubmit={handleTrackSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+                
+                {/* Search Input Box */}
+                <div style={{ flex: '1 1 320px', position: 'relative' }}>
+                  <Search size={20} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: isDark ? '#94a3b8' : '#64748b' }} />
+                  <input
+                    type="text"
+                    value={trackingIdInput}
+                    onChange={e => setTrackingIdInput(e.target.value)}
+                    placeholder={t('tracker.inputPlaceholder')}
+                    style={{
+                      width: '100%',
+                      height: 52,
+                      paddingLeft: 48,
+                      paddingRight: 16,
+                      borderRadius: 14,
+                      background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                      color: isDark ? '#ffffff' : '#0f172a',
+                      border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1',
+                      fontSize: 15,
+                      fontWeight: 700,
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                {/* Track Status Button */}
+                <button
+                  type="submit"
+                  disabled={trackingLoading}
                   style={{
-                    background: isDark ? '#111827' : '#f8fafc',
-                    borderRadius: 16,
-                    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
-                    padding: '20px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: 14
-                  }}
-                  className="civic-glass-card"
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <span style={{
-                        background: notice.badgeBg,
-                        color: notice.badgeColor,
-                        padding: '3px 8px',
-                        borderRadius: 6,
-                        fontSize: 10,
-                        fontWeight: 800,
-                        letterSpacing: '0.04em'
-                      }}>
-                        {notice.category}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: isDark ? '#94a3b8' : '#64748b' }}>
-                        <Eye size={12} />
-                        <span>{notice.views}</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                      <div style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 10,
-                        background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
-                        color: notice.badgeColor,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'
-                      }}>
-                        <NoticeIcon size={18} />
-                      </div>
-                      <div>
-                        <h4 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', lineHeight: 1.35 }}>
-                          {notice.title}
-                        </h4>
-                        <div style={{ fontSize: 11, color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span>{notice.author}</span>
-                          <span>•</span>
-                          <span>{notice.date}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <p style={{ margin: '12px 0 0', fontSize: 13, color: isDark ? '#cbd5e1' : '#475569', lineHeight: 1.5 }}>
-                      {notice.desc}
-                    </p>
-                  </div>
-
-                  {/* Reaction Bar */}
-                  <div style={{
-                    borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0',
-                    paddingTop: 10,
+                    height: 52,
+                    padding: '0 28px',
+                    borderRadius: 14,
+                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                    color: '#ffffff',
+                    fontWeight: 900,
+                    fontSize: 15,
+                    border: 'none',
+                    cursor: trackingLoading ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 6px 20px rgba(37,99,235,0.35)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button
-                        onClick={() => handleReaction(notice.id, 'likes')}
-                        style={{
-                          background: userReactions[`${notice.id}-likes`] ? 'rgba(59,130,246,0.2)' : (isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'),
-                          color: userReactions[`${notice.id}-likes`] ? '#3b82f6' : (isDark ? '#cbd5e1' : '#475569'),
-                          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
-                          borderRadius: 16,
-                          padding: '3px 8px',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4
-                        }}
-                      >
-                        <ThumbsUp size={12} /> {notice.likes}
-                      </button>
+                    gap: 8,
+                    flexShrink: 0
+                  }}
+                >
+                  {trackingLoading ? (
+                    <>
+                      <RefreshCw size={18} className="animate-spin" />
+                      <span>Checking...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Search size={18} />
+                      <span>{t('tracker.trackBtn')}</span>
+                    </>
+                  )}
+                </button>
+              </div>
 
-                      <button
-                        onClick={() => handleReaction(notice.id, 'hearts')}
-                        style={{
-                          background: userReactions[`${notice.id}-hearts`] ? 'rgba(239,68,68,0.2)' : (isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'),
-                          color: userReactions[`${notice.id}-hearts`] ? '#ef4444' : (isDark ? '#cbd5e1' : '#475569'),
-                          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
-                          borderRadius: 16,
-                          padding: '3px 8px',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4
-                        }}
-                      >
-                        <Heart size={12} /> {notice.hearts}
-                      </button>
+              {/* Category Filter Pills & Sample Shortcuts */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: isDark ? '#94a3b8' : '#64748b' }}>
+                    Trackable Services:
+                  </span>
+                  {[
+                    { key: 'Complaints', label: t('tracker.categories.complaints') },
+                    { key: 'Certificates', label: t('tracker.categories.certificates') },
+                    { key: 'Welfare', label: t('tracker.categories.welfare') },
+                    { key: 'Service Requests', label: t('tracker.categories.services') }
+                  ].map(cat => (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => setSelectedTrackerCategory(cat.key)}
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: 20,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        border: selectedTrackerCategory === cat.key ? '1.5px solid #2563eb' : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'),
+                        background: selectedTrackerCategory === cat.key ? (isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff') : 'transparent',
+                        color: selectedTrackerCategory === cat.key ? '#2563eb' : (isDark ? '#cbd5e1' : '#475569'),
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ● {cat.label}
+                    </button>
+                  ))}
+                </div>
 
-                      <button
-                        onClick={() => handleReaction(notice.id, 'fires')}
-                        style={{
-                          background: userReactions[`${notice.id}-fires`] ? 'rgba(245,158,11,0.2)' : (isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'),
-                          color: userReactions[`${notice.id}-fires`] ? '#f59e0b' : (isDark ? '#cbd5e1' : '#475569'),
-                          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
-                          borderRadius: 16,
-                          padding: '3px 8px',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4
-                        }}
-                      >
-                        <Flame size={12} /> {notice.fires}
-                      </button>
+                {/* Sample Tickets Try Button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: isDark ? '#94a3b8' : '#64748b' }}>
+                  <span>Try sample ID:</span>
+                  {['CP-2026-8941', 'CERT-2026-3392', 'WEL-2026-1032'].map(sampleId => (
+                    <button
+                      key={sampleId}
+                      type="button"
+                      onClick={() => {
+                        setTrackingIdInput(sampleId);
+                        setActiveTrackingResult(demoTrackingData[sampleId]);
+                        setTrackingError(null);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#2563eb',
+                        fontWeight: 800,
+                        fontSize: 11,
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      {sampleId}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </form>
+
+            {/* DYNAMIC RESULTS EXPANSION PANEL */}
+            {trackingLoading && (
+              <div style={{ textAlign: 'center', padding: '30px 20px' }}>
+                <RefreshCw size={28} className="animate-spin" style={{ color: '#2563eb', margin: '0 auto' }} />
+                <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800, color: isDark ? '#cbd5e1' : '#475569' }}>
+                  {t('tracker.loadingMsg')}
+                </div>
+              </div>
+            )}
+
+            {!trackingLoading && trackingError && (
+              <div style={{
+                background: isDark ? 'rgba(239,68,68,0.08)' : '#fef2f2',
+                borderRadius: 16, padding: '24px', textAlign: 'center',
+                border: isDark ? '1px solid rgba(239,68,68,0.2)' : '1px solid #fecaca'
+              }}>
+                <AlertTriangle size={32} style={{ color: '#ef4444', margin: '0 auto 10px' }} />
+                <h4 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: isDark ? '#fff' : '#0f172a' }}>
+                  {t('tracker.notFoundTitle')}
+                </h4>
+                <p style={{ margin: '0 0 16px', fontSize: 13.5, color: isDark ? '#fca5a5' : '#b91c1c' }}>
+                  {t('tracker.notFoundDesc')}
+                </p>
+                <button
+                  onClick={() => { setTrackingError(null); setTrackingIdInput(''); }}
+                  style={{
+                    padding: '8px 20px', borderRadius: 10, background: '#2563eb', color: '#fff',
+                    fontWeight: 800, border: 'none', cursor: 'pointer', fontSize: 13
+                  }}
+                >
+                  {t('tracker.tryAgain')}
+                </button>
+              </div>
+            )}
+
+            {!trackingLoading && !trackingError && activeTrackingResult && (
+              <div style={{
+                background: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
+                borderRadius: 20,
+                padding: '24px',
+                border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0',
+                display: 'flex', flexDirection: 'column', gap: 20
+              }}>
+                {/* Result Card Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                      <span style={{
+                        background: 'rgba(37,99,235,0.14)', color: '#2563eb',
+                        padding: '3px 10px', borderRadius: 8, fontSize: 11, fontWeight: 900, letterSpacing: '0.06em'
+                      }}>
+                        {activeTrackingResult.type || 'GRIEVANCE'}
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: isDark ? '#94a3b8' : '#64748b' }}>
+                        ID: {activeTrackingResult.id}
+                      </span>
                     </div>
-
-                    <Link to="/login" style={{ textDecoration: 'none', fontSize: 11, fontWeight: 700, color: '#2563eb', display: 'flex', alignItems: 'center', gap: 3 }}>
-                      Details <ExternalLink size={12} />
-                    </Link>
+                    <h3 style={{ margin: '6px 0 0', fontSize: 20, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>
+                      {activeTrackingResult.title}
+                    </h3>
                   </div>
 
+                  <span style={{
+                    background: activeTrackingResult.status === 'RESOLVED' || activeTrackingResult.status === 'APPROVED' ? 'rgba(34,197,94,0.14)' : 'rgba(59,130,246,0.14)',
+                    color: activeTrackingResult.status === 'RESOLVED' || activeTrackingResult.status === 'APPROVED' ? '#16a34a' : '#2563eb',
+                    border: activeTrackingResult.status === 'RESOLVED' || activeTrackingResult.status === 'APPROVED' ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(59,130,246,0.3)',
+                    padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 6
+                  }}>
+                    ● {t('status.' + activeTrackingResult.status, { defaultValue: activeTrackingResult.status?.replace(/_/g, ' ') })}
+                  </span>
                 </div>
-              );
-            })}
+
+                {/* Grid Details */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gap: 14,
+                  background: isDark ? '#111827' : '#ffffff',
+                  padding: 16,
+                  borderRadius: 16,
+                  border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'
+                }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase' }}>
+                      {t('tracker.department')}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: isDark ? '#fff' : '#0f172a', marginTop: 2 }}>
+                      {activeTrackingResult.department || 'Electricity Department'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase' }}>
+                      {t('tracker.assignedOfficer')}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: activeTrackingResult.assignedOfficer ? (isDark ? '#fff' : '#0f172a') : '#d97706', marginTop: 2 }}>
+                      {activeTrackingResult.assignedOfficer || `⚠️ ${t('tracker.notAssigned')}`}
+                    </div>
+                  </div>
+
+                  {activeTrackingResult.priority && (
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase' }}>
+                        {t('tracker.priority')}
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: '#ef4444', marginTop: 2 }}>
+                        {activeTrackingResult.priority}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTrackingResult.slaStatus && (
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase' }}>
+                        {t('tracker.slaStatus')}
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: '#16a34a', marginTop: 2 }}>
+                        ✓ {activeTrackingResult.slaStatus.replace(/_/g, ' ')}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTrackingResult.deadline && (
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase' }}>
+                        {t('tracker.deadline')}
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: isDark ? '#fff' : '#0f172a', marginTop: 2 }}>
+                        {activeTrackingResult.deadline}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Real Application Timeline */}
+                {activeTrackingResult.timeline && (
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.04em' }}>
+                      {t('tracker.timeline')}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {activeTrackingResult.timeline.map((step, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{
+                            width: 24, height: 24, borderRadius: '50%',
+                            background: step.done ? 'rgba(34,197,94,0.14)' : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
+                            color: step.done ? '#16a34a' : (isDark ? '#64748b' : '#94a3b8'),
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 12, fontWeight: 900, border: step.done ? '1px solid rgba(34,197,94,0.3)' : '1px solid #cbd5e1'
+                          }}>
+                            {step.done ? '✓' : idx + 1}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13.5, fontWeight: step.done ? 800 : 600, color: step.done ? (isDark ? '#ffffff' : '#0f172a') : (isDark ? '#94a3b8' : '#64748b') }}>
+                              {step.label}
+                            </div>
+                            {step.time && (
+                              <div style={{ fontSize: 11, color: isDark ? '#64748b' : '#94a3b8', marginTop: 2 }}>
+                                {step.time}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Contextual Action Button */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 8 }}>
+                  <Link to={activeTrackingResult.type === 'E-SERVICE' ? '/my-certificates' : activeTrackingResult.type === 'WELFARE' ? '/my-welfare' : '/complaints'} style={{ textDecoration: 'none' }}>
+                    <button style={{
+                      padding: '10px 24px', borderRadius: 12,
+                      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#ffffff',
+                      fontWeight: 800, fontSize: 13, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6
+                    }}>
+                      {t('tracker.viewDetails')} <ArrowRight size={15} />
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Authenticated Recent Applications Shortcut List */}
+            {isAuthenticated && userComplaints.length > 0 && (
+              <div style={{ borderTop: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', paddingTop: 16, marginTop: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 900, color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                  {t('tracker.myRecent')}
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {userComplaints.slice(0, 3).map(c => {
+                    const cId = String(c.complaintId || c.id || '');
+                    const cTitle = c.title || c.subject || '';
+                    const displayTitle = cTitle
+                      ? (cTitle.length > 18 ? cTitle.substring(0, 18) + '...' : cTitle)
+                      : (cId ? (cId.length > 8 ? cId.substring(0, 8) : cId) : 'Grievance');
+                    return (
+                      <button
+                        key={cId || Math.random()}
+                        onClick={() => {
+                          setTrackingIdInput(cId);
+                          setActiveTrackingResult({
+                            type: 'GRIEVANCE',
+                            id: cId,
+                            title: cTitle || c.category || 'Grievance',
+                            status: c.status || 'IN_PROGRESS',
+                            department: c.department || 'Municipal Board',
+                            assignedOfficer: c.assignedOfficerName || c.assignedOfficer || null,
+                            slaStatus: c.slaStatus || 'ON_TIME',
+                            deadline: c.slaDeadline ? new Date(c.slaDeadline).toLocaleString() : '18 Aug 2026'
+                          });
+                          setTrackingError(null);
+                        }}
+                        style={{
+                          background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
+                          borderRadius: 10, padding: '8px 14px', fontSize: 12, fontWeight: 700,
+                          color: isDark ? '#fff' : '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8
+                        }}
+                      >
+                        <span>📋 Grievance: {displayTitle}</span>
+                        <span style={{ color: '#2563eb', fontWeight: 900 }}>● {c.status || 'NEW'}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
           </div>
 
         </div>
       </section>
 
       {/* ── 6. Interactive Live SLA Tracker Simulator ── */}
-      <section id="tracker" style={{
-        padding: '65px 32px',
+      <section id="tracker" data-tour="sla-tracker" style={{
+        padding: '50px 24px',
         background: isDark ? '#090d16' : '#f8fafc',
         borderBottom: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0'
       }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28 }}>
+        <div style={{ maxWidth: 1680, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 32 }}>
           
-          <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto' }}>
-            <span style={{ color: '#16a34a', fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              TRANSPARENT DISPATCH GRID
-            </span>
-            <h2 style={{ margin: '6px 0 8px', fontSize: 28, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', letterSpacing: '-0.02em' }}>
-              Interactive Live SLA Tracker
-            </h2>
-            <p style={{ margin: 0, fontSize: 14, color: isDark ? '#94a3b8' : '#64748b' }}>
-              Every citizen grievance is timestamped on the Kafka Event Bus, auto-assigned to field officers, and monitored against SLA breach timers.
-            </p>
-          </div>
-
-          {/* Search Box */}
           <div style={{
-            maxWidth: 680,
-            margin: '0 auto',
-            width: '100%',
-            background: isDark ? '#111827' : '#ffffff',
-            padding: 6,
-            borderRadius: 14,
-            border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #cbd5e1',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            boxShadow: isDark ? 'none' : '0 6px 20px rgba(0,0,0,0.04)'
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.25fr)',
+            gap: 40,
+            alignItems: 'stretch'
           }}>
-            <div style={{ paddingLeft: 10, color: '#3b82f6' }}>
-              <Search size={18} />
-            </div>
-            <input 
-              type="text"
-              value={trackingIdInput}
-              onChange={e => setTrackingIdInput(e.target.value)}
-              placeholder="Enter Ticket ID (e.g. CP-2026-8941 or CERT-2026-3392)"
-              style={{
-                flex: 1,
-                border: 'none',
-                background: 'transparent',
-                outline: 'none',
-                fontSize: 13.5,
-                fontWeight: 600,
-                color: isDark ? '#ffffff' : '#0f172a'
-              }}
-            />
-            <button
-              onClick={() => {
-                if (demoTrackingData[trackingIdInput.trim()]) {
-                  setActiveTrackingResult(demoTrackingData[trackingIdInput.trim()]);
-                } else {
-                  setActiveTrackingResult(demoTrackingData['CP-2026-8941']);
-                }
-              }}
-              style={{
-                height: 40,
-                padding: '0 20px',
-                borderRadius: 10,
-                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                color: '#fff',
-                fontWeight: 800,
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 13
-              }}
-            >
-              Track Live
-            </button>
-          </div>
+            
+            {/* Left Control Column: Section Title, Search, Sample Pills & Live Telemetry Metrics */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 24 }}>
+              <div>
+                <span style={{ color: '#16a34a', fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  ⚡ TRANSPARENT DISPATCH GRID
+                </span>
+                <h2 style={{ margin: '8px 0 10px', fontSize: 32, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', letterSpacing: '-0.02em' }}>
+                  Interactive Live SLA Tracker
+                </h2>
+                <p style={{ margin: 0, fontSize: 15, color: isDark ? '#94a3b8' : '#64748b', lineHeight: 1.6 }}>
+                  Every citizen grievance is timestamped on the Kafka Event Bus, auto-assigned to field officers, and monitored against SLA breach timers.
+                </p>
+              </div>
 
-          {/* Sample quick buttons */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12 }}>
-            <span style={{ color: isDark ? '#94a3b8' : '#64748b' }}>Try sample tickets:</span>
-            <button 
-              onClick={() => { setTrackingIdInput('CP-2026-8941'); setActiveTrackingResult(demoTrackingData['CP-2026-8941']); }}
-              style={{ background: 'transparent', border: 'none', color: '#0284c7', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
-            >
-              CP-2026-8941 (Streetlight)
-            </button>
-            <span>•</span>
-            <button 
-              onClick={() => { setTrackingIdInput('CERT-2026-3392'); setActiveTrackingResult(demoTrackingData['CERT-2026-3392']); }}
-              style={{ background: 'transparent', border: 'none', color: '#16a34a', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
-            >
-              CERT-2026-3392 (Residence Cert)
-            </button>
-          </div>
-
-          {/* Live Timeline Display Card */}
-          {activeTrackingResult && (
-            <div style={{
-              maxWidth: 780,
-              margin: '0 auto',
-              width: '100%',
-              background: isDark ? '#111827' : '#ffffff',
-              borderRadius: 18,
-              padding: '24px',
-              border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
-              boxShadow: isDark ? '0 12px 30px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.03)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14, paddingBottom: 16, borderBottom: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 17, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>{activeTrackingResult.id}</span>
-                    <span style={{ 
-                      fontSize: 10, 
-                      fontWeight: 800, 
-                      padding: '2px 8px', 
-                      borderRadius: 6,
-                      background: activeTrackingResult.status === 'APPROVED' ? 'rgba(34,197,94,0.15)' : 'rgba(59,130,246,0.15)',
-                      color: activeTrackingResult.status === 'APPROVED' ? '#22c55e' : '#3b82f6'
-                    }}>
-                      {activeTrackingResult.status}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 12, color: isDark ? '#94a3b8' : '#64748b', marginTop: 3 }}>
-                    {activeTrackingResult.type} • {activeTrackingResult.dept}
-                  </div>
+              {/* Search Box */}
+              <div style={{
+                width: '100%',
+                background: isDark ? '#111827' : '#ffffff',
+                padding: 6,
+                borderRadius: 16,
+                border: isDark ? '1.5px solid rgba(255,255,255,0.14)' : '1.5px solid #cbd5e1',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 6px 20px rgba(0,0,0,0.04)'
+              }}>
+                <div style={{ paddingLeft: 12, color: '#3b82f6' }}>
+                  <Search size={20} />
                 </div>
+                <input 
+                  type="text"
+                  value={trackingIdInput}
+                  onChange={e => setTrackingIdInput(e.target.value)}
+                  placeholder="Enter Ticket ID (e.g. CP-2026-8941 or CERT-2026-3392)"
+                  style={{
+                    flex: 1,
+                    border: 'none',
+                    background: 'transparent',
+                    outline: 'none',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: isDark ? '#ffffff' : '#0f172a'
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    if (demoTrackingData[trackingIdInput.trim()]) {
+                      setActiveTrackingResult(demoTrackingData[trackingIdInput.trim()]);
+                    } else {
+                      setActiveTrackingResult(demoTrackingData['CP-2026-8941']);
+                    }
+                  }}
+                  style={{
+                    height: 44,
+                    padding: '0 24px',
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                    color: '#fff',
+                    fontWeight: 800,
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 13.5,
+                    boxShadow: '0 4px 14px rgba(37,99,235,0.3)'
+                  }}
+                >
+                  Track Live
+                </button>
+              </div>
 
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 11, color: isDark ? '#94a3b8' : '#64748b' }}>Assigned Officer</div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', marginTop: 2 }}>{activeTrackingResult.assignedOfficer}</div>
+              {/* Quick Select Sample Ticket Pills */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: isDark ? '#94a3b8' : '#64748b', marginBottom: 8 }}>
+                  Try sample tickets:
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button 
+                    onClick={() => { setTrackingIdInput('CP-2026-8941'); setActiveTrackingResult(demoTrackingData['CP-2026-8941']); }}
+                    style={{
+                      background: isDark ? 'rgba(56,189,248,0.12)' : '#eff6ff',
+                      border: '1px solid #bae6fd',
+                      color: '#0284c7',
+                      padding: '7px 14px',
+                      borderRadius: 10,
+                      fontWeight: 800,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    ⚡ CP-2026-8941 (Streetlight)
+                  </button>
+                  <button 
+                    onClick={() => { setTrackingIdInput('CERT-2026-3392'); setActiveTrackingResult(demoTrackingData['CERT-2026-3392']); }}
+                    style={{
+                      background: isDark ? 'rgba(34,197,94,0.12)' : '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      color: '#16a34a',
+                      padding: '7px 14px',
+                      borderRadius: 10,
+                      fontWeight: 800,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    📜 CERT-2026-3392 (Residence Cert)
+                  </button>
                 </div>
               </div>
 
-              {/* Step Timeline */}
-              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {activeTrackingResult.steps.map((step, idx) => (
-                  <div key={idx} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <div style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        background: step.done ? '#16a34a' : (step.active ? '#3b82f6' : (isDark ? '#334155' : '#e2e8f0')),
-                        color: '#fff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 11,
-                        fontWeight: 800
+              {/* Kafka Grid Live Health Badges */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff', padding: '12px 14px', borderRadius: 14, border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: 11, color: '#38bdf8', fontWeight: 800 }}>KAFKA LATENCY</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: isDark ? '#fff' : '#0f172a', marginTop: 2 }}>12 ms</div>
+                </div>
+                <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff', padding: '12px 14px', borderRadius: 14, border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: 11, color: '#10b981', fontWeight: 800 }}>SLA COMPLIANCE</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: isDark ? '#fff' : '#0f172a', marginTop: 2 }}>98.5%</div>
+                </div>
+                <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff', padding: '12px 14px', borderRadius: 14, border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: 11, color: '#a855f7', fontWeight: 800 }}>DISPATCHED</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: isDark ? '#fff' : '#0f172a', marginTop: 2 }}>1,420 Active</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Live SLA Timeline Display Card */}
+            {activeTrackingResult && (
+              <div style={{
+                width: '100%',
+                background: isDark ? '#111827' : '#ffffff',
+                borderRadius: 22,
+                padding: '28px',
+                border: isDark ? '1.5px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0',
+                boxShadow: isDark ? '0 16px 40px rgba(0,0,0,0.5)' : '0 12px 32px rgba(0,0,0,0.04)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: 20
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14, paddingBottom: 18, borderBottom: isDark ? '1.5px solid rgba(255,255,255,0.08)' : '1.5px solid #e2e8f0' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 20, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>{activeTrackingResult.id}</span>
+                      <span style={{ 
+                        fontSize: 11, 
+                        fontWeight: 900, 
+                        padding: '3px 10px', 
+                        borderRadius: 8,
+                        background: activeTrackingResult.status === 'APPROVED' ? 'rgba(34,197,94,0.15)' : 'rgba(59,130,246,0.15)',
+                        color: activeTrackingResult.status === 'APPROVED' ? '#22c55e' : '#3b82f6',
+                        border: activeTrackingResult.status === 'APPROVED' ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(59,130,246,0.3)'
                       }}>
-                        {step.done ? '✓' : (step.active ? '●' : idx + 1)}
-                      </div>
-                      {idx !== activeTrackingResult.steps.length - 1 && (
-                        <div style={{ width: 2, height: 26, background: step.done ? '#16a34a' : (isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'), marginTop: 3 }} />
-                      )}
+                        ● {activeTrackingResult.status}
+                      </span>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: step.active ? 800 : 700, color: step.active ? '#38bdf8' : (isDark ? '#f8fafc' : '#0f172a'), lineHeight: 1.2 }}>
-                        {step.label}
-                      </div>
-                      <div style={{ fontSize: 11, color: isDark ? '#94a3b8' : '#64748b', marginTop: 2 }}>{step.time}</div>
+                    <div style={{ fontSize: 13, color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginTop: 4 }}>
+                      {activeTrackingResult.type} • {activeTrackingResult.dept}
                     </div>
                   </div>
-                ))}
-              </div>
 
-            </div>
-          )}
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 11, color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>Assigned Officer</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', marginTop: 2 }}>{activeTrackingResult.assignedOfficer}</div>
+                  </div>
+                </div>
+
+                {/* Step Timeline */}
+                <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  {activeTrackingResult.steps.map((step, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{
+                          width: 26,
+                          height: 26,
+                          borderRadius: '50%',
+                          background: step.done ? '#16a34a' : (step.active ? '#3b82f6' : (isDark ? '#334155' : '#cbd5e1')),
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 12,
+                          fontWeight: 900,
+                          boxShadow: step.active ? '0 0 12px rgba(59,130,246,0.5)' : 'none'
+                        }}>
+                          {step.done ? '✓' : (step.active ? '●' : idx + 1)}
+                        </div>
+                        {idx !== activeTrackingResult.steps.length - 1 && (
+                          <div style={{ width: 2, height: 32, background: step.done ? '#16a34a' : (isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'), marginTop: 4 }} />
+                        )}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: step.active ? 800 : 700, color: step.active ? '#38bdf8' : (isDark ? '#f8fafc' : '#0f172a'), lineHeight: 1.3 }}>
+                          {step.label}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: isDark ? '#94a3b8' : '#64748b', marginTop: 3, fontWeight: 600 }}>{step.time}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            )}
+
+          </div>
 
         </div>
       </section>
 
       {/* ── 7. Modern Services Directory & App Hub ── */}
-      <section id="services" style={{
-        padding: '65px 32px',
+      <section id="services" data-tour="services" style={{
+        padding: '50px 20px',
         background: isDark ? '#0c111c' : '#ffffff',
         borderBottom: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0'
       }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28 }}>
+        <div style={{ maxWidth: 1720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28 }}>
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16 }}>
             <div>
@@ -1635,11 +2100,11 @@ export default function LandingPage() {
 
       {/* ── 8. Omni-Channel Access (WhatsApp & Telegram Bot Integration) ── */}
       <section style={{
-        padding: '55px 32px',
+        padding: '45px 20px',
         background: isDark ? '#090d16' : '#f8fafc',
         borderBottom: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0'
       }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1720, margin: '0 auto' }}>
           <div style={{
             background: 'linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 50%, #0f172a 100%)',
             borderRadius: 24,
@@ -1657,7 +2122,7 @@ export default function LandingPage() {
                 <Smartphone size={14} style={{ color: '#38bdf8' }} /> Mobile & Messaging Bot Gateway
               </div>
               <h2 style={{ fontSize: 26, fontWeight: 900, margin: '0 0 10px', lineHeight: 1.25 }}>
-                Access CivicPulse Directly on WhatsApp & Telegram
+                Access Smart Governance Platform Directly on WhatsApp & Telegram
               </h2>
               <p style={{ fontSize: 13.5, color: '#cbd5e1', lineHeight: 1.6, margin: '0 0 20px' }}>
                 File complaints simply by sending a photo and location on WhatsApp or Telegram. Receive instant SLA status alerts right on your phone without opening a browser.
@@ -1682,7 +2147,7 @@ export default function LandingPage() {
                   </button>
                 </a>
 
-                <a href="https://t.me/CivicPulseOfficialBot" target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                <a href="https://t.me/SmartGovernanceOfficialBot" target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
                   <button style={{
                     height: 42,
                     padding: '0 18px',
@@ -1734,10 +2199,10 @@ export default function LandingPage() {
         background: isDark ? '#050811' : '#0f172a',
         color: '#cbd5e1',
         borderTop: '1px solid rgba(255,255,255,0.08)',
-        padding: '45px 32px 25px'
+        padding: '40px 20px 25px'
       }}>
         <div style={{
-          maxWidth: 1280,
+          maxWidth: 1720,
           margin: '0 auto',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -1750,7 +2215,7 @@ export default function LandingPage() {
               <div style={{ width: 32, height: 32, borderRadius: 8, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
                 <Landmark size={18} />
               </div>
-              <span style={{ fontSize: 17, fontWeight: 900, color: '#ffffff' }}>CivicPulse Nexus</span>
+              <span style={{ fontSize: 17, fontWeight: 900, color: '#ffffff' }}>Smart Governance Platform</span>
             </div>
             <p style={{ margin: 0, fontSize: 12, color: '#94a3b8', lineHeight: 1.6 }}>
               A Cloud-Native Smart Governance Infrastructure built on Apache Kafka, Keycloak Single Sign-On, and DigiLocker APIs.
@@ -1789,13 +2254,13 @@ export default function LandingPage() {
               <span>🚨 National Emergency: <strong style={{ color: '#ffffff' }}>112</strong></span>
               <span>📞 Citizen Toll-Free: <strong style={{ color: '#38bdf8' }}>1800-11-2026</strong></span>
               <span>🚑 Health & Ambulance: <strong style={{ color: '#ffffff' }}>108</strong></span>
-              <span>✉️ Official Email: <strong style={{ color: '#ffffff' }}>support@civicpulse.gov.in</strong></span>
+              <span>✉️ Official Email: <strong style={{ color: '#ffffff' }}>support@smartgovernance.gov.in</strong></span>
             </div>
           </div>
         </div>
 
         <div style={{
-          maxWidth: 1280,
+          maxWidth: 1720,
           margin: '20px auto 0',
           display: 'flex',
           justifyContent: 'space-between',
@@ -1805,7 +2270,7 @@ export default function LandingPage() {
           fontSize: 11,
           color: '#64748b'
         }}>
-          <div>© 2026 Government of India • CivicPulse Nexus Smart Governance Platform.</div>
+          <div>© 2026 Government of India • Smart Governance Platform for Administrative Operations with Citizen Assistance.</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
             <span style={{ color: '#94a3b8' }}>All Governance Nodes Operational</span>
@@ -1877,7 +2342,7 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    CivicPulse AI Desk
+                    Smart Governance AI Desk
                     <BadgeCheck size={14} style={{ color: '#38bdf8' }} />
                   </div>
                   <div style={{ fontSize: 10, color: '#22c55e', fontWeight: 600 }}>
@@ -2087,6 +2552,400 @@ export default function LandingPage() {
         </button>
 
       </div>
+
+      {/* ── 9-Step Citizen Guided Tour Overlay System ── */}
+      {typeof tourStep === 'number' && (
+        <>
+          {/* Dimmed Background Overlay */}
+          <div 
+            onClick={handleSkipTour}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(9, 13, 22, 0.72)',
+              zIndex: 9999,
+              transition: 'opacity 0.3s ease'
+            }}
+          />
+
+          {/* Floating Responsive Tooltip Card */}
+          {(() => {
+            const currentStepConfig = TOUR_STEPS.find(s => s.step === tourStep);
+            if (!currentStepConfig) return null;
+            const StepIcon = currentStepConfig.icon;
+            
+            // Positioning math
+            const isMobile = window.innerWidth < 640;
+            let tooltipStyle = {};
+
+            if (isMobile) {
+              tooltipStyle = {
+                position: 'fixed',
+                bottom: 20,
+                left: 16,
+                right: 16,
+                maxWidth: 'calc(100vw - 32px)',
+                zIndex: 10001
+              };
+            } else if (tourBounds) {
+              const cardEstHeight = 330;
+              const canPlaceBelow = (tourBounds.bottom + 16 + cardEstHeight) <= (window.innerHeight - 30);
+              let topPos;
+
+              if (canPlaceBelow) {
+                topPos = tourBounds.bottom + 16;
+              } else if (tourBounds.top - 16 - cardEstHeight >= 20) {
+                topPos = tourBounds.top - 16 - cardEstHeight;
+              } else {
+                topPos = Math.max(20, (window.innerHeight - cardEstHeight) / 2);
+              }
+
+              // Strict safety clamping to ensure Back/Next buttons stay well above taskbar
+              topPos = Math.max(20, Math.min(topPos, window.innerHeight - cardEstHeight - 40));
+              const leftPos = Math.max(20, Math.min(window.innerWidth - 480, tourBounds.left));
+
+              tooltipStyle = {
+                position: 'fixed',
+                top: topPos,
+                left: leftPos,
+                width: 460,
+                maxHeight: 'calc(100vh - 60px)',
+                overflowY: 'auto',
+                zIndex: 10001
+              };
+            } else {
+              tooltipStyle = {
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 480,
+                zIndex: 10001
+              };
+            }
+
+            return (
+              <div style={{
+                ...tooltipStyle,
+                background: isDark ? '#0f172a' : '#ffffff',
+                borderRadius: 22,
+                padding: '24px 28px',
+                border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}>
+                {/* Tooltip Header: Step Counter & Skip */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{
+                      background: `linear-gradient(135deg, ${currentStepConfig.accentColor}, #7c3aed)`,
+                      color: '#ffffff',
+                      padding: '3px 10px',
+                      borderRadius: 20,
+                      fontSize: 11,
+                      fontWeight: 900,
+                      letterSpacing: '0.04em'
+                    }}>
+                      {t('tour.stepCounter', { current: tourStep, total: 9 })}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: isDark ? '#94a3b8' : '#64748b' }}>
+                      {currentStepConfig.subtitle}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={handleSkipTour}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: isDark ? '#94a3b8' : '#64748b',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      padding: '4px 8px',
+                      borderRadius: 6
+                    }}
+                  >
+                    {t('tour.skip')}
+                  </button>
+                </div>
+
+                {/* Progress Dots Track */}
+                <div style={{ display: 'flex', gap: 4, marginBottom: 18 }}>
+                  {TOUR_STEPS.map(s => (
+                    <div 
+                      key={s.step} 
+                      style={{
+                        flex: 1,
+                        height: 4,
+                        borderRadius: 2,
+                        background: s.step <= tourStep ? currentStepConfig.accentColor : (isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'),
+                        transition: 'all 0.3s ease'
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* Step Title & Icon */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+                  <div style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 12,
+                    background: `linear-gradient(135deg, ${currentStepConfig.accentColor}, #1d4ed8)`,
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <StepIcon size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>
+                      {t(`tour.steps.${tourStep}.title`, { defaultValue: currentStepConfig.title })}
+                    </h3>
+                    {currentStepConfig.badge && (
+                      <span style={{ fontSize: 10, fontWeight: 800, color: '#2563eb', background: '#eff6ff', padding: '2px 6px', borderRadius: 4, marginTop: 2, display: 'inline-block' }}>
+                        {currentStepConfig.badge}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Step Description */}
+                <p style={{ margin: 0, fontSize: 13.5, color: isDark ? '#cbd5e1' : '#475569', lineHeight: 1.6 }}>
+                  {t(`tour.steps.${tourStep}.desc`, { defaultValue: currentStepConfig.desc })}
+                </p>
+
+                {currentStepConfig.additionalDesc && (
+                  <p style={{ margin: '10px 0 0', fontSize: 12.5, color: isDark ? '#94a3b8' : '#64748b', lineHeight: 1.5, background: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc', padding: 10, borderRadius: 10, border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0' }}>
+                    💡 {currentStepConfig.additionalDesc}
+                  </p>
+                )}
+
+                {/* Tooltip Controls (Back / Next / Finish) */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, paddingTop: 16, borderTop: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0' }}>
+                  <button
+                    disabled={tourStep === 1}
+                    onClick={() => setTourStep(prev => Math.max(1, prev - 1))}
+                    style={{
+                      background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                      border: 'none',
+                      color: tourStep === 1 ? (isDark ? '#475569' : '#cbd5e1') : (isDark ? '#ffffff' : '#0f172a'),
+                      padding: '8px 16px',
+                      borderRadius: 10,
+                      fontWeight: 800,
+                      fontSize: 12.5,
+                      cursor: tourStep === 1 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {t('tour.back')}
+                  </button>
+
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {tourStep < 9 ? (
+                      <button
+                        onClick={() => setTourStep(prev => Math.min(9, prev + 1))}
+                        style={{
+                          height: 38,
+                          padding: '0 20px',
+                          borderRadius: 10,
+                          background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          boxShadow: '0 4px 14px rgba(37,99,235,0.35)'
+                        }}
+                      >
+                        {t('tour.next')}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleFinishTour}
+                        style={{
+                          height: 38,
+                          padding: '0 20px',
+                          borderRadius: 10,
+                          background: 'linear-gradient(135deg, #10b981, #059669)',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          boxShadow: '0 4px 14px rgba(16,185,129,0.35)'
+                        }}
+                      >
+                        {t('tour.finish')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            );
+          })()}
+        </>
+      )}
+
+      {/* ── Tour Completion Modal ── */}
+      {tourStep === 'completed' && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(9, 13, 22, 0.84)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20
+        }} onClick={() => setTourStep(null)}>
+          <div style={{
+            width: '100%',
+            maxWidth: 520,
+            background: isDark ? '#0f172a' : '#ffffff',
+            borderRadius: 24,
+            padding: 32,
+            border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1',
+            boxShadow: '0 30px 70px rgba(0,0,0,0.65)',
+            textAlign: 'center'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <CheckCircle2 size={28} />
+            </div>
+
+            <h3 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>
+              You're Ready to Get Started
+            </h3>
+            <p style={{ margin: '8px 0 24px', fontSize: 14, color: isDark ? '#cbd5e1' : '#475569', lineHeight: 1.6 }}>
+              You now know the main features of the Smart Governance Platform. Create an account or sign in to start using digital citizen services.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <Link to="/register" onClick={() => setTourStep(null)} style={{ textDecoration: 'none' }}>
+                <button style={{
+                  width: '100%', height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                  color: '#ffffff', fontWeight: 800, border: 'none', cursor: 'pointer', fontSize: 14,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  boxShadow: '0 6px 20px rgba(37,99,235,0.35)'
+                }}>
+                  <PenSquare size={16} /> Register as Citizen <ArrowRight size={16} />
+                </button>
+              </Link>
+
+              <Link to="/login" onClick={() => setTourStep(null)} style={{ textDecoration: 'none' }}>
+                <button style={{
+                  width: '100%', height: 46, borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
+                  color: isDark ? '#ffffff' : '#0f172a', fontWeight: 800, border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1',
+                  cursor: 'pointer', fontSize: 13.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                }}>
+                  <LogIn size={16} /> Citizen Sign In
+                </button>
+              </Link>
+
+              <button
+                onClick={() => setTourStep(null)}
+                style={{
+                  background: 'transparent', border: 'none', color: isDark ? '#94a3b8' : '#64748b',
+                  fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 8
+                }}
+              >
+                Close & Return to Landing Page
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Persistent First-Time Visitor Toast Banner ── */}
+      {showFirstTimeInvitation && tourStep === null && (
+        <div style={{
+          position: 'fixed',
+          bottom: 24,
+          left: 24,
+          zIndex: 9998,
+          maxWidth: 380,
+          background: isDark ? '#0f172a' : '#ffffff',
+          borderRadius: 18,
+          padding: '16px 20px',
+          border: isDark ? '1.5px solid rgba(56,189,248,0.35)' : '1.5px solid #93c5fd',
+          boxShadow: '0 12px 36px rgba(0,0,0,0.35)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+          animation: 'fadeInUp 0.3s ease'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a' }}>
+              <Compass size={16} style={{ color: '#2563eb' }} /> First time visiting?
+            </div>
+            <button 
+              onClick={() => {
+                localStorage.setItem('civicpulse_guided_tour_completed', 'dismissed');
+                setShowFirstTimeInvitation(false);
+              }}
+              style={{ background: 'transparent', border: 'none', color: isDark ? '#94a3b8' : '#64748b', cursor: 'pointer', fontWeight: 800, fontSize: 13 }}
+            >
+              ✕
+            </button>
+          </div>
+          <p style={{ margin: 0, fontSize: 12.5, color: isDark ? '#cbd5e1' : '#475569', lineHeight: 1.45 }}>
+            Take a 1-minute guided tour to learn how to report civic problems, apply for certificates, and track complaints.
+          </p>
+          <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+            <button
+              onClick={() => {
+                setShowFirstTimeInvitation(false);
+                setTourStep(1);
+              }}
+              style={{
+                flex: 1,
+                height: 36,
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 800,
+                fontSize: 12.5,
+                cursor: 'pointer'
+              }}
+            >
+              Start Guided Tour
+            </button>
+            <button
+              onClick={() => {
+                localStorage.setItem('civicpulse_guided_tour_completed', 'dismissed');
+                setShowFirstTimeInvitation(false);
+              }}
+              style={{
+                height: 36,
+                padding: '0 12px',
+                borderRadius: 10,
+                background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                color: isDark ? '#cbd5e1' : '#475569',
+                border: 'none',
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: 'pointer'
+              }}
+            >
+              Later
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -45,6 +45,15 @@ public class KafkaConsumerService {
                     event.getApplicationId(), 
                     "CERTIFICATE",
                     "certificate-submitted");
+
+            // Notify Citizen
+            String citizenRecipient = (event.getCitizenId() != null && !event.getCitizenId().isBlank())
+                    ? event.getCitizenId()
+                    : "bd5b60cb-9c09-4574-97a3-ad0142a10588";
+
+            saveNotification(citizenRecipient, "Application Submitted Successfully",
+                    "Your application (" + event.getApplicationNumber() + ") for " + (event.getServiceType() != null ? event.getServiceType().replace("_", " ") : "Certificate") + " has been successfully submitted.",
+                    event.getApplicationId(), "CERTIFICATE", "certificate-submitted", "CITIZEN");
         } catch (Exception e) {
             System.err.println("Failed to process certificate-submitted: " + e.getMessage());
         }
@@ -81,6 +90,11 @@ public class KafkaConsumerService {
             saveNotification(event.getCitizenId(), "Certificate Approved",
                     "Your certificate application " + event.getApplicationNumber() + " has been approved.",
                     event.getApplicationId(), "CERTIFICATE", "certificate-approved", "CITIZEN");
+            
+            saveNotification("admin", "Application Approved",
+                    "Application " + event.getApplicationNumber() + " (Applicant: " + event.getApplicantName() + ") for " + 
+                    (event.getServiceType() != null ? event.getServiceType().replace("_", " ") : "Certificate") + " has been approved.",
+                    event.getApplicationId(), "CERTIFICATE", "certificate-approved", "ADMIN");
         } catch (Exception e) {
             System.err.println("Failed to process certificate-approved: " + e.getMessage());
         }
@@ -93,6 +107,10 @@ public class KafkaConsumerService {
             saveNotification(event.getCitizenId(), "Certificate Generated",
                     "Your certificate is ready for download (App No: " + event.getApplicationNumber() + ").",
                     event.getApplicationId(), "CERTIFICATE", "certificate-generated", "CITIZEN");
+            
+            saveNotification("admin", "Certificate Generated",
+                    "Certificate generated (" + event.getRemarks() + ") for application " + event.getApplicationNumber() + ".",
+                    event.getApplicationId(), "CERTIFICATE", "certificate-generated", "ADMIN");
         } catch (Exception e) {
             System.err.println("Failed to process certificate-generated: " + e.getMessage());
         }
@@ -150,6 +168,13 @@ public class KafkaConsumerService {
             saveNotification(event.getCitizenId(), "Complaint Submitted Successfully",
                     formattedMessage,
                     event.getComplaintId(), "COMPLAINT", "complaint-submitted", "CITIZEN");
+                    
+            // Notify Officer if auto-assigned
+            if (event.getAssignedOfficer() != null && !event.getAssignedOfficer().isBlank()) {
+                saveNotification(event.getAssignedOfficer(), "New Complaint Assigned",
+                        "A new complaint '" + (event.getRemarks() != null ? event.getRemarks() : "") + "' has been assigned to you for investigation.",
+                        event.getComplaintId(), "COMPLAINT", "complaint-assigned-officer", "OFFICER");
+            }
                     
             System.out.println("DEBUG: Notification Saved to Database & Sent to User: " + event.getCitizenId());
         } catch (Exception e) {
@@ -355,13 +380,24 @@ public class KafkaConsumerService {
             username = "david";
         } else if ("Health Department".equalsIgnoreCase(department)) {
             username = "john";
+        } else if ("Revenue Department".equalsIgnoreCase(department)) {
+            username = "mark";
+        } else if ("Municipal Corporation".equalsIgnoreCase(department) || "Municipal Department".equalsIgnoreCase(department)) {
+            username = "ryan";
+        } else if ("Water Department".equalsIgnoreCase(department)) {
+            username = "chris";
+        } else if ("Roads Department".equalsIgnoreCase(department)) {
+            username = "ethan";
+        } else if ("Electricity Department".equalsIgnoreCase(department)) {
+            username = "jack";
+        } else if ("Urban Planning Department".equalsIgnoreCase(department)) {
+            username = "will";
         }
 
         if (username != null) {
             saveNotification(username, title, message, relatedEntityId, relatedEntityType, eventType, "OFFICER");
-        } else {
-            // Fallback: Just notify the department "group"
-            saveNotification("department:" + department, title, message, relatedEntityId, relatedEntityType, eventType, "OFFICER");
+            saveNotification(username + "@muni.gov", title, message, relatedEntityId, relatedEntityType, eventType, "OFFICER");
         }
+        saveNotification("department:" + department, title, message, relatedEntityId, relatedEntityType, eventType, "OFFICER");
     }
 }

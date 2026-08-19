@@ -255,7 +255,7 @@ export default function MyWelfareApplications() {
     doc.setTextColor(100, 116, 139);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
-    doc.text("Verified & Certified by CivicPulse e-Governance Platform.", pageWidth / 2, finalY + 25, { align: 'center' });
+    doc.text("Verified & Certified by Smart Governance Platform.", pageWidth / 2, finalY + 25, { align: 'center' });
     
     doc.setFontSize(8);
     doc.text("This is an electronically generated DBT payment receipt and does not require a physical signature.", pageWidth / 2, finalY + 31, { align: 'center' });

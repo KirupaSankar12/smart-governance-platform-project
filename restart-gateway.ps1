@@ -8,11 +8,13 @@ foreach ($p in $pids) {
 
 Start-Sleep -Seconds 2
 
-Write-Host "Starting API Gateway..."
-Start-Process -FilePath "java" -ArgumentList "-Xmx256m", "-jar", ".\target\api-gateway-0.0.1-SNAPSHOT.jar" `
-              -WorkingDirectory "d:\civic plus milestone\api-gateway" `
-              -RedirectStandardOutput "d:\civic plus milestone\logs\gw.out" `
-              -RedirectStandardError "d:\civic plus milestone\logs\gw.err" `
+$gwJar = (Get-ChildItem "$PSScriptRoot\api-gateway\target\*.jar" | Where-Object {$_.Name -notlike "*sources*"}).Name
+
+Write-Host "Starting API Gateway... Jar: $gwJar"
+Start-Process -FilePath "java" -ArgumentList "-Xmx256m", "-jar", ".\api-gateway\target\$gwJar" `
+              -WorkingDirectory "$PSScriptRoot" `
+              -RedirectStandardOutput "$PSScriptRoot\logs\gw.out" `
+              -RedirectStandardError "$PSScriptRoot\logs\gw.err" `
               -WindowStyle Hidden
 
 Write-Host "API Gateway process launched."

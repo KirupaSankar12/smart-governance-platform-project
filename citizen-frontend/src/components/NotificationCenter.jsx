@@ -57,8 +57,16 @@ function NotificationCenter() {
   const isOfficer = roles.includes('OFFICER') || roles.includes('officer');
   const isAdmin = roles.includes('ADMIN') || roles.includes('admin');
 
-  const username = keycloak.tokenParsed?.preferred_username;
-  const sub = keycloak.tokenParsed?.sub;
+  let username = keycloak.tokenParsed?.preferred_username;
+  let sub = keycloak.tokenParsed?.sub;
+
+  if ((!username || !sub) && localStorage.getItem('kc_token')) {
+    try {
+      const parsed = JSON.parse(atob(localStorage.getItem('kc_token').split('.')[1]));
+      if (parsed.preferred_username) username = parsed.preferred_username;
+      if (parsed.sub) sub = parsed.sub;
+    } catch (e) {}
+  }
 
   const recipient = (isOfficer || isAdmin) ? (username || 'admin') : (sub || username || 'admin');
 

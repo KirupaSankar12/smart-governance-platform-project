@@ -31,22 +31,23 @@ public class DataInitializer implements CommandLineRunner {
             createOfficer("chris", "Water Department"),
             createOfficer("ethan", "Roads Department"),
             createOfficer("jack", "Electricity Department"),
-            createOfficer("david", "Sanitation Department"),
-            createOfficer("will", "Urban Planning Department")
+            createOfficer("sam", "Sanitation Department"),
+            createOfficer("david", "Social Welfare Department"),
+            createOfficer("will", "Urban Planning Department"),
+            createOfficer("emily", "Education Department")
         );
 
         for (Officer officer : defaultOfficers) {
-            officerRepository.findByNameIgnoreCase(officer.getName()).ifPresentOrElse(
-                existingOfficer -> {
-                    existingOfficer.setDepartment(officer.getDepartment());
-                    officerRepository.save(existingOfficer);
-                    log.info("Updated existing officer: {}", officer.getName());
-                },
-                () -> {
-                    officerRepository.save(officer);
-                    log.info("Created default officer: {} for department: {}", officer.getName(), officer.getDepartment());
-                }
-            );
+            List<Officer> existingList = officerRepository.findByDepartmentIgnoreCase(officer.getDepartment());
+            if (existingList.isEmpty()) {
+                officerRepository.save(officer);
+                log.info("Created default officer: {} for department: {}", officer.getName(), officer.getDepartment());
+            } else {
+                Officer existing = existingList.get(0);
+                existing.setName(officer.getName());
+                officerRepository.save(existing);
+                log.info("Updated existing department officer: {} for department: {}", officer.getName(), officer.getDepartment());
+            }
         }
     }
 

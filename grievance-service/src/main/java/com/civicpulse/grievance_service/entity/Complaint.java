@@ -29,8 +29,13 @@ public class Complaint {
     @NotBlank(message = "department is required")
     private String department;
 
+    private String category;
+
     @NotBlank(message = "location is required")
     private String location;
+
+    private Double latitude;
+    private Double longitude;
 
     @Enumerated(EnumType.STRING)
     private Priority priority;
@@ -51,6 +56,20 @@ public class Complaint {
     private Boolean escalated = false;
     private Integer escalationLevel = 0;  // 0 = not escalated, 1 = Level 1, 2 = Level 2, etc.
 
+    // Duplicate detection and complaint linking fields
+    private UUID duplicateOf;
+    private Integer relatedComplaintCount = 0;
+    private Double duplicateScore;
+
+    @Column(columnDefinition = "TEXT")
+    private String embeddingJson;
+
+    // Tracks which embedding model generated the stored vector.
+    // Values: "LOCAL_NGRAM" | "GEMINI_EMBEDDING_001"
+    // Null means embedding was created before this field was introduced.
+    @Column(length = 50)
+    private String embeddingModel;
+
     @Column(columnDefinition = "TEXT")
     private String attachmentUrl;
 
@@ -65,6 +84,7 @@ public class Complaint {
         if (this.priority == null)  this.priority = Priority.MEDIUM;
         if (this.escalated == null) this.escalated = false;
         if (this.escalationLevel == null) this.escalationLevel = 0;
+        if (this.relatedComplaintCount == null) this.relatedComplaintCount = 0;
         syncPriorityOrder();
     }
 
@@ -92,7 +112,7 @@ public class Complaint {
     @Transient
     public SlaStatus getSlaStatus() {
         // Already closed/resolved — no active SLA warning needed
-        if (this.status == ComplaintStatus.RESOLVED || this.status == ComplaintStatus.CLOSED) {
+        if (this.status == ComplaintStatus.RESOLVED || this.status == ComplaintStatus.CLOSED || this.status == ComplaintStatus.REJECTED) {
             return SlaStatus.ON_TIME;
         }
 
@@ -123,7 +143,10 @@ public class Complaint {
     public String getTitle()            { return title; }
     public String getDescription()      { return description; }
     public String getDepartment()       { return department; }
+    public String getCategory()         { return category; }
     public String getLocation()         { return location; }
+    public Double getLatitude()         { return latitude; }
+    public Double getLongitude()        { return longitude; }
     public Priority getPriority()       { return priority; }
     public ComplaintStatus getStatus()  { return status; }
     public String getAssignedOfficer()  { return assignedOfficer; }
@@ -133,6 +156,11 @@ public class Complaint {
     public Boolean isEscalated()        { return escalated; }
     public Integer getEscalationLevel() { return escalationLevel; }
     public Integer getPriorityOrder()   { return priorityOrder; }
+    public UUID getDuplicateOf()        { return duplicateOf; }
+    public Integer getRelatedComplaintCount() { return relatedComplaintCount; }
+    public Double getDuplicateScore()   { return duplicateScore; }
+    public String getEmbeddingJson()    { return embeddingJson; }
+    public String getEmbeddingModel()   { return embeddingModel; }
     public String getAttachmentUrl()    { return attachmentUrl; }
 
     // ----------------------------------------------------------------
@@ -143,7 +171,10 @@ public class Complaint {
     public void setTitle(String title)                      { this.title = title; }
     public void setDescription(String description)          { this.description = description; }
     public void setDepartment(String department)            { this.department = department; }
+    public void setCategory(String category)                { this.category = category; }
     public void setLocation(String location)                { this.location = location; }
+    public void setLatitude(Double latitude)                { this.latitude = latitude; }
+    public void setLongitude(Double longitude)              { this.longitude = longitude; }
     public void setPriority(Priority priority)              { this.priority = priority; syncPriorityOrder(); }
     public void setStatus(ComplaintStatus status)           { this.status = status; }
     public void setAssignedOfficer(String assignedOfficer)  { this.assignedOfficer = assignedOfficer; }
@@ -152,6 +183,11 @@ public class Complaint {
     public void setSlaDeadline(LocalDateTime slaDeadline)   { this.slaDeadline = slaDeadline; }
     public void setEscalated(Boolean escalated)             { this.escalated = escalated; }
     public void setEscalationLevel(Integer escalationLevel) { this.escalationLevel = escalationLevel; }
+    public void setDuplicateOf(UUID duplicateOf)            { this.duplicateOf = duplicateOf; }
+    public void setRelatedComplaintCount(Integer count)     { this.relatedComplaintCount = count; }
+    public void setDuplicateScore(Double duplicateScore)    { this.duplicateScore = duplicateScore; }
+    public void setEmbeddingJson(String embeddingJson)      { this.embeddingJson = embeddingJson; }
+    public void setEmbeddingModel(String embeddingModel)    { this.embeddingModel = embeddingModel; }
     public void setAttachmentUrl(String attachmentUrl)      { this.attachmentUrl = attachmentUrl; }
 
     // ----------------------------------------------------------------
@@ -162,6 +198,6 @@ public class Complaint {
     }
 
     public enum ComplaintStatus {
-        NEW, ASSIGNED, IN_PROGRESS, PENDING, RESOLVED, CLOSED
+        NEW, ASSIGNED, IN_PROGRESS, PENDING, RESOLVED, CLOSED, REJECTED
     }
 }

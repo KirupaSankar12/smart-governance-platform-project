@@ -127,6 +127,7 @@ export default function ComplaintList() {
 
   const roles     = keycloak.tokenParsed?.realm_access?.roles || [];
   const isCitizen = roles.includes('CITIZEN') || roles.includes('citizen');
+  const isOfficer = roles.includes('OFFICER') || roles.includes('officer');
   const citizenId = keycloak.tokenParsed?.sub;
 
   const load = () => {
@@ -134,7 +135,37 @@ export default function ComplaintList() {
     api.get('/grievance-service/api/complaints')
       .then(r => {
         let data = r.data;
-        if (isCitizen) data = data.filter(c => c.citizenId === citizenId);
+        if (isCitizen) {
+          data = data.filter(c => c.citizenId === citizenId);
+        } else if (isOfficer) {
+          let u = (keycloak.tokenParsed?.preferred_username || '').toLowerCase();
+          const deptKeywords = {
+            health: 'Health Department',
+            revenue: 'Revenue Department',
+            municipal: 'Municipal Corporation',
+            water: 'Water Department',
+            roads: 'Roads Department',
+            electricity: 'Electricity Department',
+            socialwelfare: 'Social Welfare Department',
+            welfare: 'Social Welfare Department',
+            urban: 'Urban Planning Department',
+            education: 'Education Department',
+            sanitation: 'Sanitation Department'
+          };
+          let officerDept = '';
+          for (const [kw, deptName] of Object.entries(deptKeywords)) {
+            if (u.includes(kw)) {
+              officerDept = deptName.toLowerCase();
+              break;
+            }
+          }
+          if (officerDept) {
+            data = data.filter(c => 
+              (c.department && c.department.toLowerCase().includes(officerDept)) ||
+              (c.assignedOfficer && (c.assignedOfficer.toLowerCase() === u || u.includes(c.assignedOfficer.toLowerCase())))
+            );
+          }
+        }
         setComplaints(data);
         setLoading(false);
       })
@@ -410,6 +441,16 @@ export default function ComplaintList() {
                           <span style={{ fontSize: 11, color: '#475569', fontFamily: 'monospace', fontWeight: 800, background: '#f1f5f9', padding: '2px 8px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
                             #{c.complaintId?.toString().slice(-6) || '—'}
                           </span>
+                          {c.relatedComplaintCount > 0 && (
+                            <span style={{ marginLeft: 8, fontSize: 11, color: '#2563eb', fontWeight: 800, background: '#eff6ff', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: 12 }}>
+                              🔗 {c.relatedComplaintCount} Linked Reports
+                            </span>
+                          )}
+                          {c.duplicateOf && (
+                            <span style={{ marginLeft: 8, fontSize: 11, color: '#d97706', fontWeight: 800, background: '#fff7ed', border: '1px solid #fed7aa', padding: '2px 8px', borderRadius: 12 }}>
+                              Linked Duplicate
+                            </span>
+                          )}
                         </td>
 
                         {/* Department Badge */}

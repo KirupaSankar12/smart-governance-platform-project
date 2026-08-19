@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api.js';
+import keycloak from '../keycloak.js';
 import AppShell from '../components/AppShell.jsx';
 import PageLoader from '../components/PageLoader.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -166,6 +167,43 @@ function OfficerApplicationView() {
       await api.put(`/service-management-service/api/services/approve/${id}`, {
         officerRemarks: officerRemarks
       });
+
+      const username = keycloak.tokenParsed?.preferred_username || 'officer';
+      
+      // Notify Citizen
+      api.post('/notification-service/api/notifications', {
+        recipient: app?.citizenId || 'CIT-001',
+        title: 'Certificate Approved',
+        message: `Your certificate application ${app?.applicationNumber} has been approved by the Admin and you can download it.`,
+        relatedEntityId: String(id || app?.applicationNumber),
+        relatedEntityType: 'CERTIFICATE',
+        eventType: 'certificate-approved',
+        recipientRole: 'CITIZEN'
+      }).catch(() => {});
+
+      // Notify Admin
+      api.post('/notification-service/api/notifications', {
+        recipient: 'admin',
+        title: 'Certificate Application Approved',
+        message: `Certificate application ${app?.applicationNumber} for ${app?.applicantName} has been approved.`,
+        relatedEntityId: String(id || app?.applicationNumber),
+        relatedEntityType: 'CERTIFICATE',
+        eventType: 'certificate-approved',
+        recipientRole: 'ADMIN'
+      }).catch(() => {});
+
+      // Notify Current Officer / Approver
+      api.post('/notification-service/api/notifications', {
+        recipient: username,
+        title: 'Certificate Approved',
+        message: `Approved certificate application ${app?.applicationNumber} for ${app?.applicantName}.`,
+        relatedEntityId: String(id || app?.applicationNumber),
+        relatedEntityType: 'CERTIFICATE',
+        eventType: 'certificate-approved',
+        recipientRole: 'OFFICER'
+      }).catch(() => {});
+
+      window.dispatchEvent(new Event('refresh-notifications'));
       toast.success('Application approved successfully!');
       setShowApproveModal(false);
       navigate('/services/officer/dashboard');
@@ -185,6 +223,29 @@ function OfficerApplicationView() {
         reason: rejectReason,
         officerRemarks: officerRemarks
       });
+
+      const username = keycloak.tokenParsed?.preferred_username || 'officer';
+      api.post('/notification-service/api/notifications', {
+        recipient: app?.citizenId || 'CIT-001',
+        title: 'Certificate Application Rejected',
+        message: `Your certificate application ${app?.applicationNumber} was rejected. Reason: ${rejectReason}`,
+        relatedEntityId: String(id || app?.applicationNumber),
+        relatedEntityType: 'CERTIFICATE',
+        eventType: 'certificate-rejected',
+        recipientRole: 'CITIZEN'
+      }).catch(() => {});
+
+      api.post('/notification-service/api/notifications', {
+        recipient: username,
+        title: 'Certificate Rejected',
+        message: `Rejected certificate application ${app?.applicationNumber}. Reason: ${rejectReason}`,
+        relatedEntityId: String(id || app?.applicationNumber),
+        relatedEntityType: 'CERTIFICATE',
+        eventType: 'certificate-rejected',
+        recipientRole: 'OFFICER'
+      }).catch(() => {});
+
+      window.dispatchEvent(new Event('refresh-notifications'));
       toast.error('Application rejected.');
       setShowRejectModal(false);
       navigate('/services/officer/dashboard');
@@ -522,32 +583,137 @@ function OfficerApplicationView() {
 
       {/* ── Approve Dialog Modal ────────────────────────────────────────── */}
       <Dialog open={showApproveModal} onOpenChange={setShowApproveModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Approve Certificate Application</DialogTitle>
+        <DialogContent className="max-w-md" style={{ padding: 24, borderRadius: 20 }}>
+          <DialogHeader style={{ borderBottom: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, paddingBottom: 14 }}>
+            <DialogTitle style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              fontSize: 18, fontWeight: 800, color: isDark ? '#f8fafc' : '#0f172a'
+            }}>
+              <ShieldCheck size={22} color="#10b981" /> Approve Certificate Application
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <div className="text-sm text-muted-foreground space-y-2">
-              <p>This action will perform the following steps:</p>
-              <ul className="list-disc pl-5 space-y-1 text-foreground">
-                <li>Approve the application in Municipal Registry</li>
-                <li>Generate official PDF certificate</li>
-                <li>Apply digital seal & verification signature</li>
-                <li>Notify citizen via portal & SMS</li>
-              </ul>
+            <div className="space-y-3 pt-2">
+              <p style={{ fontSize: 13, color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, margin: '0 0 6px 0' }}>
+                This action will trigger the following automated processing pipeline:
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Step 1 */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12,
+                  background: isDark ? 'rgba(37,99,235,0.08)' : '#f0f7ff',
+                  border: `1px solid ${isDark ? 'rgba(37,99,235,0.2)' : '#e0f2fe'}`,
+                }}>
+                  <div style={{
+                    background: '#2563eb', color: '#fff', width: 28, height: 28, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    <FileCheck size={16} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: isDark ? '#f1f5f9' : '#0f172a' }}>
+                      Approve in Municipal Registry
+                    </div>
+                    <div style={{ fontSize: 11, color: isDark ? '#94a3b8' : '#64748b', marginTop: 1 }}>
+                      Updates database status to APPROVED
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 2 */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12,
+                  background: isDark ? 'rgba(16,185,129,0.08)' : '#f0fdf4',
+                  border: `1px solid ${isDark ? 'rgba(16,185,129,0.2)' : '#dcfce7'}`,
+                }}>
+                  <div style={{
+                    background: '#10b981', color: '#fff', width: 28, height: 28, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    <FileText size={16} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: isDark ? '#f1f5f9' : '#0f172a' }}>
+                      Generate Official PDF Certificate
+                    </div>
+                    <div style={{ fontSize: 11, color: isDark ? '#94a3b8' : '#64748b', marginTop: 1 }}>
+                      Compiles government layout with citizen details
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12,
+                  background: isDark ? 'rgba(124,58,237,0.08)' : '#faf5ff',
+                  border: `1px solid ${isDark ? 'rgba(124,58,237,0.2)' : '#f3e8ff'}`,
+                }}>
+                  <div style={{
+                    background: '#7c3aed', color: '#fff', width: 28, height: 28, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    <ShieldCheck size={16} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: isDark ? '#f1f5f9' : '#0f172a' }}>
+                      Apply Digital Seal & Signature
+                    </div>
+                    <div style={{ fontSize: 11, color: isDark ? '#94a3b8' : '#64748b', marginTop: 1 }}>
+                      Cryptographically binds and secures the PDF document
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 4 */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12,
+                  background: isDark ? 'rgba(245,158,11,0.08)' : '#fffbeb',
+                  border: `1px solid ${isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7'}`,
+                }}>
+                  <div style={{
+                    background: '#f59e0b', color: '#fff', width: 28, height: 28, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    <Clock size={16} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: isDark ? '#f1f5f9' : '#0f172a' }}>
+                      Notify Citizen (Portal & SMS)
+                    </div>
+                    <div style={{ fontSize: 11, color: isDark ? '#94a3b8' : '#64748b', marginTop: 1 }}>
+                      Dispatches tracking links and status SMS alert
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-3 pt-3" style={{ borderTop: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, marginTop: 18 }}>
               <button
                 onClick={() => setShowApproveModal(false)}
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', color: '#475569', fontWeight: 600, cursor: 'pointer' }}
+                style={{
+                  padding: '10px 20px', borderRadius: 12,
+                  border: `1.5px solid ${isDark ? '#475569' : '#cbd5e1'}`,
+                  background: isDark ? '#1e293b' : '#ffffff',
+                  color: isDark ? '#cbd5e1' : '#475569',
+                  fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleApprove}
-                style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                style={{
+                  padding: '10px 22px', borderRadius: 12, border: 'none',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: '#ffffff', fontWeight: 800, fontSize: 13, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+                  transition: 'all 0.2s',
+                }}
               >
-                Approve & Sign
+                <CheckCircle2 size={16} /> Approve & Sign
               </button>
             </div>
           </div>
@@ -609,7 +775,7 @@ function OfficerApplicationView() {
         <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden">
           <div className="flex justify-between items-center p-4 border-b bg-background">
             <h3 className="font-semibold text-base">{docViewerName}</h3>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" style={{ marginRight: '36px' }}>
               <button onClick={() => setDocZoom(z => z + 0.25)} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}><ZoomIn size={16} /></button>
               <button onClick={() => setDocZoom(z => Math.max(0.5, z - 0.25))} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}><ZoomOut size={16} /></button>
               <button onClick={() => setDocRotation(r => r + 90)} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}><RotateCw size={16} /></button>

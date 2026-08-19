@@ -56,7 +56,7 @@ public class Citizen implements Persistable<UUID> {
         regexp = "^[6-9]\\d{9}$",
         message = "phone number must be a valid 10-digit Indian number"
     )
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     public String phoneNumber;
 
     @NotBlank(message = "email is required")

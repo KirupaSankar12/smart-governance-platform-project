@@ -57,10 +57,15 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 // Health check — always public
                 .requestMatchers("/actuator/**").permitAll()
-                // Public registration — citizen creates their own Keycloak account
-                .requestMatchers("/api/citizens/auth/register").permitAll()
-                // Public dashboard stats
-                .requestMatchers("/api/complaints/dashboard/stats", "/api/services/dashboard/stats", "/api/welfare/dashboard/stats").permitAll()
+                // Public citizen registration & auth
+                .requestMatchers("/api/citizens/register", "/api/citizens/auth/**", "/citizen-service/**").permitAll()
+                // Public complaint submission, tracking & duplicate checks
+                .requestMatchers("/api/complaints", "/api/complaints/**", "/grievance-service/**").permitAll()
+                // Public service applications & tracking
+                .requestMatchers("/api/services", "/api/services/**", "/service-management-service/**").permitAll()
+                // Notifications & Welfare
+                .requestMatchers("/api/notifications/**", "/notification-service/**").permitAll()
+                .requestMatchers("/api/welfare/**", "/welfare-service/**").permitAll()
                 // AI Governance endpoints — permitAll (backend protects Gemini key)
                 .requestMatchers("/api/ai/**").permitAll()
                 // Everything else requires a valid JWT

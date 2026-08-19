@@ -58,11 +58,6 @@ public class PublicRegistrationController {
                 .body(Map.of("message", "An account with this email already exists. Please login."));
         }
 
-        // Check if phone number already exists in our DB
-        if (citizenRepository.existsByPhoneNumber(dto.phoneNumber)) {
-            return ResponseEntity.badRequest()
-                .body(Map.of("message", "An account with this phone number already exists."));
-        }
 
         // Check if email already exists in Keycloak
         if (keycloakAdminService.userExists(dto.email)) {
@@ -95,16 +90,20 @@ public class PublicRegistrationController {
 
             citizenRepository.save(citizen);
 
-            // Step 4: Publish Kafka event to citizen-registered topic
-            CitizenEvent event = new CitizenEvent(
-                "REGISTERED",
-                UUID.fromString(keycloakUserId),
-                dto.name,
-                dto.email,
-                LocalDateTime.now()
-            );
-            kafkaTemplate.send(TOPIC_CITIZEN_REGISTERED, keycloakUserId, event);
-            log.info("Published citizen-registered event for citizenId={}", keycloakUserId);
+            // Step 4: Publish Kafka event to citizen-registered topic (non-blocking)
+            try {
+                CitizenEvent event = new CitizenEvent(
+                    "REGISTERED",
+                    UUID.fromString(keycloakUserId),
+                    dto.name,
+                    dto.email,
+                    LocalDateTime.now()
+                );
+                kafkaTemplate.send(TOPIC_CITIZEN_REGISTERED, keycloakUserId, event);
+                log.info("Published citizen-registered event for citizenId={}", keycloakUserId);
+            } catch (Exception ke) {
+                log.warn("Kafka notification broadcast failed during registration (non-blocking): {}", ke.getMessage());
+            }
 
             return ResponseEntity.ok(Map.of(
                 "message", "Registration successful! You can now login with your email and password.",
@@ -112,7 +111,7 @@ public class PublicRegistrationController {
             ));
 
         } catch (Exception e) {
-            log.error("Registration failed for email={}: {}", dto.email, e.getMessage());
+            log.error("Registration failed for email={}: {}", dto.email, e.getMessage(), e);
 
             // Rollback: delete the Keycloak user if DB save failed
             if (keycloakUserId != null) {
@@ -120,14 +119,14 @@ public class PublicRegistrationController {
                 keycloakAdminService.deleteKeycloakUser(keycloakUserId);
             }
 
-            String userMessage = e.getMessage() != null && e.getMessage().contains("phone_number")
-                ? "An account with this phone number already exists."
-                : e.getMessage() != null && e.getMessage().contains("email")
-                ? "An account with this email already exists."
-                : "Registration failed. Please check your details and try again.";
+            String msg = e.getMessage() != null ? e.getMessage() : "Registration failed. Please check your details and try again.";
+            if (msg.contains("409") || msg.contains("exists") || msg.contains("duplicate") || msg.contains("email") || msg.contains("ConstraintViolationException")) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("message", "An account with this email address or Aadhaar number already exists. Please login instead."));
+            }
 
-            return ResponseEntity.status(500)
-                .body(Map.of("message", userMessage));
+            return ResponseEntity.badRequest()
+                .body(Map.of("message", msg));
         }
     }
 }

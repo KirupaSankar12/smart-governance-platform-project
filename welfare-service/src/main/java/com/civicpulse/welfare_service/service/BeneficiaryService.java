@@ -136,7 +136,7 @@ public class BeneficiaryService {
 
         // Single Active Application Rule Check:
         // Beneficiary is uniquely identified by applicantAadhaar (digits-only).
-        // Checks across ALL schemes for any active application holding this Aadhaar identity.
+        // Checks within the same scheme for any active application holding this Aadhaar identity.
         // Logged-in user account (citizenId/email) does NOT determine duplicate eligibility.
         String rawAadhaar = beneficiary.getApplicantAadhaar();
         if (rawAadhaar != null && !rawAadhaar.trim().isEmpty()) {
@@ -155,7 +155,7 @@ public class BeneficiaryService {
                     BeneficiaryStatus.FUNDS_DISBURSED
             );
             
-            List<Beneficiary> activeApps = beneficiaryRepo.findActiveApplicationsByAadhaar(cleanAadhaar, rawAadhaar, activeStatuses);
+            List<Beneficiary> activeApps = beneficiaryRepo.findActiveApplicationsBySchemeAndAadhaar(schemeId, cleanAadhaar, rawAadhaar, activeStatuses);
             Optional<Beneficiary> duplicate = activeApps.stream()
                     .filter(b -> beneficiary.getBeneficiaryId() == null || !b.getBeneficiaryId().equals(beneficiary.getBeneficiaryId()))
                     .findFirst();
@@ -190,6 +190,18 @@ public class BeneficiaryService {
             beneficiary.setAssignedOfficer("david");
         } else if ("Health Department".equalsIgnoreCase(dept)) {
             beneficiary.setAssignedOfficer("john");
+        } else if ("Revenue Department".equalsIgnoreCase(dept)) {
+            beneficiary.setAssignedOfficer("mark");
+        } else if ("Municipal Corporation".equalsIgnoreCase(dept) || "Municipal Department".equalsIgnoreCase(dept)) {
+            beneficiary.setAssignedOfficer("ryan");
+        } else if ("Water Department".equalsIgnoreCase(dept)) {
+            beneficiary.setAssignedOfficer("chris");
+        } else if ("Roads Department".equalsIgnoreCase(dept)) {
+            beneficiary.setAssignedOfficer("ethan");
+        } else if ("Electricity Department".equalsIgnoreCase(dept)) {
+            beneficiary.setAssignedOfficer("jack");
+        } else if ("Urban Planning Department".equalsIgnoreCase(dept)) {
+            beneficiary.setAssignedOfficer("will");
         }
 
         // Automated Eligibility Check

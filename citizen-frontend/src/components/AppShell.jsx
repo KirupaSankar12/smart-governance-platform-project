@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import keycloak from '../keycloak.js';
 import NotificationCenter from './NotificationCenter.jsx';
+import LanguageSelector from './LanguageSelector.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 import Sidebar from './Sidebar.jsx';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -68,44 +69,38 @@ function AppShell({ children, title }) {
       <div className="flex flex-1 min-w-0 flex-col overflow-hidden">
         
         {/* Top Header */}
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-6 sm:px-10 lg:px-16 shadow-xs backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95">
-          <div className="flex items-center gap-3">
-            <button
-              className="lg:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open menu"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 sm:px-6 lg:px-8 shadow-xs backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95">
+          <div className="flex items-center gap-3 pl-1 sm:pl-3">
             <div className="flex items-center gap-2.5">
               <div className="hidden sm:flex h-5 w-1 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500" />
-              <h1 className="text-base font-bold text-slate-800 dark:text-white hidden sm:block tracking-tight">
-                {title || 'CivicPulse Nexus'}
+              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white hidden sm:block tracking-tight">
+                {title || 'Smart Governance Platform'}
               </h1>
             </div>
           </div>
           
-          <div className="flex items-center gap-4 sm:gap-6 mr-8 sm:mr-14 lg:mr-24 pr-6 sm:pr-12 lg:pr-20">
+          <div className="flex items-center gap-4 sm:gap-6 mr-6 sm:mr-10">
+            <LanguageSelector compact={true} />
             <ThemeToggle />
-            <NotificationCenter />
             
-            <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block mx-1.5 sm:mx-2.5" />
-            
-            {/* Ultra-Premium User Profile Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button 
-                  className="flex items-center gap-2.5 rounded-full pl-1.5 pr-3.5 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700/80 shadow-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30 mr-6 sm:mr-10 lg:mr-12"
-                  style={{ marginRight: '40px' }}
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-xs font-bold shadow-xs">
-                      {getInitials(name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[140px] truncate hidden sm:block">{username}</span>
-                </button>
-              </DropdownMenuTrigger>
+            {/* Notification Bell + User Profile Badge Grouped Together */}
+            <div className="flex items-center gap-4 sm:gap-6 ml-2">
+              <NotificationCenter />
+              
+              {/* Ultra-Premium User Profile Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button 
+                    className="flex items-center gap-2 rounded-full pl-1 pr-3 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700/80 shadow-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-xs font-bold shadow-xs">
+                        {getInitials(name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[140px] truncate hidden sm:block">{username}</span>
+                  </button>
+                </DropdownMenuTrigger>
               
               <DropdownMenuContent 
                 align="end" 
@@ -240,14 +235,15 @@ function AppShell({ children, title }) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </header>
+        </div>
+      </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10" style={{ background: 'var(--bg)' }}>
-          <div className="w-full pt-5 sm:pt-6 px-1 sm:px-3">
+        <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8" style={{ background: 'var(--bg)' }}>
+          <div className="w-full max-w-[1720px] mx-auto pt-3 sm:pt-4 px-1 sm:px-2">
             <div className="mb-5 sm:hidden">
               <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
-                {title || 'CivicPulse Nexus'}
+                {title || 'Smart Governance Platform'}
               </h1>
             </div>
             {children}

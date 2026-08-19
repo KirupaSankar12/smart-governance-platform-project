@@ -40,6 +40,7 @@ public class SecurityConfig {
                 // Revenue summary & dashboard stats — accessible for reporting aggregation
                 .requestMatchers(HttpMethod.GET, "/api/services/revenue/summary").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/services/dashboard/stats").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/services/check-duplicate").permitAll()
                 // Admin endpoints
                 .requestMatchers(HttpMethod.GET, "/api/services/stats").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/services").hasAnyRole("OFFICER", "ADMIN")

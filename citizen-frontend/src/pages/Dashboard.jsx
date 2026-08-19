@@ -173,7 +173,7 @@ function CitizenDashboard() {
               background: 'rgba(56,189,248,0.15)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.3)',
               padding: '5px 14px', borderRadius: 20, fontSize: 11, fontWeight: 900, letterSpacing: '0.08em', display: 'inline-block' 
             }}>
-              CIVICPULSE NEXUS · CITIZEN PORTAL
+              SMART GOVERNANCE PLATFORM · CITIZEN PORTAL
             </span>
             <h2 style={{ margin: '14px 0 8px', fontSize: 32, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
               Welcome back, {firstName}
