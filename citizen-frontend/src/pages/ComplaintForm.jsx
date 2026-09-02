@@ -5,7 +5,45 @@ import api from '../api.js';
 import keycloak from '../keycloak.js';
 import AppShell from '../components/AppShell.jsx';
 import { toast } from 'sonner';
-import { FileUp, Info, MapPin, Building2, AlertTriangle, PenSquare, ArrowLeft, Image as ImageIcon, FileText, X } from 'lucide-react';
+import { FileUp, Info, MapPin, Building2, AlertTriangle, PenSquare, ArrowLeft, Image as ImageIcon, FileText, X, ShieldCheck, Clock, CheckCircle2 } from 'lucide-react';
+
+const QUICK_CITIES = ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem'];
+
+const PRIORITY_OPTIONS = [
+  {
+    value: 'LOW',
+    label: 'Low',
+    desc: 'Standard / Routine',
+    sla: '72h SLA',
+    color: '#16a34a',
+    bgLight: '#f0fdf4',
+    glow: 'rgba(22, 163, 74, 0.15)',
+    tagBg: '#dcfce7',
+    Icon: ShieldCheck
+  },
+  {
+    value: 'MEDIUM',
+    label: 'Medium',
+    desc: 'Urgent attention',
+    sla: '48h SLA',
+    color: '#d97706',
+    bgLight: '#fffbeb',
+    glow: 'rgba(217, 119, 6, 0.15)',
+    tagBg: '#fef3c7',
+    Icon: Clock
+  },
+  {
+    value: 'HIGH',
+    label: 'High',
+    desc: 'Critical / Hazard',
+    sla: '24h SLA',
+    color: '#dc2626',
+    bgLight: '#fef2f2',
+    glow: 'rgba(220, 38, 38, 0.15)',
+    tagBg: '#fee2e2',
+    Icon: AlertTriangle
+  }
+];
 import LocalTourOverlay from '../components/LocalTourOverlay.jsx';
 
 const DEPARTMENTS = [
@@ -98,7 +136,7 @@ function ComplaintForm() {
 
   const setField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
-  // Real-time fingerprint duplicate check (debounced)
+  // Real-time duplicate check (debounced)
   const checkActiveDuplicate = useCallback(async (dept, cat, loc) => {
     const citizenId = keycloak.tokenParsed?.sub;
     if (!citizenId || !dept || !cat || !loc?.trim()) {
@@ -599,52 +637,190 @@ function ComplaintForm() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24, gridColumn: 'span 1' }}>
             
             {/* Location & Priority Card */}
-            <div data-tour="location" style={{ background: 'var(--surface, #ffffff)', borderRadius: 16, border: '1px solid var(--border, #e2e8f0)', boxShadow: '0 2px 8px rgba(15,23,42,0.04)', overflow: 'hidden' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border, #e2e8f0)', background: 'var(--bg, #f8fafc)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <MapPin size={20} color="var(--text, #0f172a)" />
-                <h3 style={{ margin: 0, color: 'var(--text, #0f172a)', fontSize: '16px', fontWeight: '700' }}>Location & Impact</h3>
+            <div 
+              data-tour="location" 
+              style={{ 
+                background: 'var(--surface, #ffffff)', 
+                borderRadius: 16, 
+                border: '1px solid var(--border, #e2e8f0)', 
+                boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.06)', 
+                overflow: 'hidden',
+                transition: 'box-shadow 0.3s ease'
+              }}
+            >
+              {/* Header */}
+              <div style={{ 
+                padding: '16px 20px', 
+                borderBottom: '1px solid var(--border, #e2e8f0)', 
+                background: 'linear-gradient(135deg, var(--bg, #f8fafc) 0%, var(--surface, #ffffff) 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justify: 'space-between'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ 
+                    width: 34, 
+                    height: 34, 
+                    borderRadius: 10, 
+                    background: 'rgba(239, 68, 68, 0.1)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justify: 'center' 
+                  }}>
+                    <MapPin size={18} color="#ef4444" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, color: 'var(--text, #0f172a)', fontSize: '15px', fontWeight: '700' }}>Location & Impact</h3>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary, #64748b)' }}>Specify area, city and issue priority</span>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+              {/* Card Body */}
+              <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                
+                {/* Area / Locality Field */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <label style={{ fontSize: 14, fontWeight: 600, color: 'var(--text, #334155)' }}>Area / Locality {renderRequiredMarker(Boolean(form.location?.trim()))}</label>
-                  <input 
-                    value={form.location} 
-                    onChange={e => setField('location', e.target.value)} 
-                    placeholder="E.g., Anna Nagar, Near City Mall, Ward 12" 
-                    style={{ padding: '12px 16px', borderRadius: 10, border: '1.5px solid var(--border, #e2e8f0)', fontSize: 15, outline: 'none', transition: 'border-color 0.2s', width: '100%', boxSizing: 'border-box', background: 'var(--surface, #ffffff)', color: 'var(--text, #0f172a)' }}
-                    onFocus={e => e.target.style.borderColor = '#ef4444'}
-                    onBlur={e => e.target.style.borderColor = 'var(--border, #e2e8f0)'}
-                    required 
-                  />
+                  <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text, #334155)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    Area / Locality {renderRequiredMarker(Boolean(form.location?.trim()))}
+                  </label>
+                  
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <MapPin size={18} color="#94a3b8" style={{ position: 'absolute', left: 14, pointerEvents: 'none' }} />
+                    <input 
+                      value={form.location} 
+                      onChange={e => setField('location', e.target.value)} 
+                      placeholder="E.g., Anna Nagar, Near City Mall, Ward 12" 
+                      style={{ 
+                        padding: '12px 14px 12px 42px', 
+                        borderRadius: 10, 
+                        border: '1.5px solid var(--border, #e2e8f0)', 
+                        fontSize: 14, 
+                        outline: 'none', 
+                        transition: 'all 0.2s', 
+                        width: '100%', 
+                        boxSizing: 'border-box', 
+                        background: 'var(--surface, #ffffff)', 
+                        color: 'var(--text, #0f172a)' 
+                      }}
+                      onFocus={e => { e.target.style.borderColor = '#ef4444'; e.target.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.12)'; }}
+                      onBlur={e => { e.target.style.borderColor = 'var(--border, #e2e8f0)'; e.target.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
 
+                {/* City / District Field */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <label style={{ fontSize: 14, fontWeight: 600, color: 'var(--text, #334155)' }}>City / District {renderRequiredMarker(Boolean(form.city?.trim()))}</label>
-                  <input 
-                    value={form.city} 
-                    onChange={e => setField('city', e.target.value)} 
-                    placeholder="E.g., Chennai, Coimbatore, Madurai" 
-                    style={{ padding: '12px 16px', borderRadius: 10, border: '1.5px solid var(--border, #e2e8f0)', fontSize: 15, outline: 'none', transition: 'border-color 0.2s', width: '100%', boxSizing: 'border-box', background: 'var(--surface, #ffffff)', color: 'var(--text, #0f172a)' }}
-                    onFocus={e => e.target.style.borderColor = '#ef4444'}
-                    onBlur={e => e.target.style.borderColor = 'var(--border, #e2e8f0)'}
-                    required 
-                  />
+                  <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text, #334155)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    City / District {renderRequiredMarker(Boolean(form.city?.trim()))}
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Building2 size={18} color="#94a3b8" style={{ position: 'absolute', left: 14, pointerEvents: 'none' }} />
+                    <input 
+                      value={form.city} 
+                      onChange={e => setField('city', e.target.value)} 
+                      placeholder="E.g., Chennai, Coimbatore, Madurai" 
+                      style={{ 
+                        padding: '12px 14px 12px 42px', 
+                        borderRadius: 10, 
+                        border: '1.5px solid var(--border, #e2e8f0)', 
+                        fontSize: 14, 
+                        outline: 'none', 
+                        transition: 'all 0.2s', 
+                        width: '100%', 
+                        boxSizing: 'border-box', 
+                        background: 'var(--surface, #ffffff)', 
+                        color: 'var(--text, #0f172a)' 
+                      }}
+                      onFocus={e => { e.target.style.borderColor = '#ef4444'; e.target.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.12)'; }}
+                      onBlur={e => { e.target.style.borderColor = 'var(--border, #e2e8f0)'; e.target.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
+                  
+                  {/* Quick Pick City Chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+                    <span style={{ fontSize: 11, color: '#94a3b8', alignSelf: 'center', marginRight: 2 }}>Popular:</span>
+                    {QUICK_CITIES.map(city => (
+                      <button
+                        key={city}
+                        type="button"
+                        onClick={() => setField('city', city)}
+                        style={{
+                          fontSize: 11,
+                          fontWeight: form.city === city ? 700 : 500,
+                          padding: '3px 9px',
+                          borderRadius: 20,
+                          border: form.city === city ? '1px solid #ef4444' : '1px solid var(--border, #e2e8f0)',
+                          background: form.city === city ? '#fef2f2' : 'var(--bg, #f8fafc)',
+                          color: form.city === city ? '#dc2626' : 'var(--text-secondary, #64748b)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {city}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <label style={{ fontSize: 14, fontWeight: 600, color: 'var(--text, #334155)' }}>Priority Level</label>
-                  <select 
-                    value={form.priority} 
-                    onChange={e => setField('priority', e.target.value)}
-                    style={{ padding: '12px 16px', borderRadius: 10, border: '1.5px solid var(--border, #e2e8f0)', fontSize: 15, outline: 'none', transition: 'border-color 0.2s', width: '100%', boxSizing: 'border-box', background: 'var(--surface, #ffffff)', color: 'var(--text, #0f172a)', appearance: 'none', cursor: 'pointer' }}
-                    onFocus={e => e.target.style.borderColor = '#ef4444'}
-                    onBlur={e => e.target.style.borderColor = 'var(--border, #e2e8f0)'}
-                  >
-                    <option value="LOW">Low (No immediate danger)</option>
-                    <option value="MEDIUM">Medium (Urgent)</option>
-                    <option value="HIGH">High (Safety Risk)</option>
-                  </select>
+                {/* Priority Level Selector */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text, #334155)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    Priority Level
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                    {PRIORITY_OPTIONS.map((opt) => {
+                      const isSelected = form.priority === opt.value;
+                      const IconComp = opt.Icon;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setField('priority', opt.value)}
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            gap: 6,
+                            padding: '12px 12px',
+                            borderRadius: 12,
+                            border: isSelected ? `2px solid ${opt.color}` : '1.5px solid var(--border, #e2e8f0)',
+                            background: isSelected ? opt.bgLight : 'var(--surface, #ffffff)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            textAlign: 'left',
+                            boxShadow: isSelected ? `0 4px 12px ${opt.glow}` : 'none'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: opt.color, fontWeight: 700, fontSize: 13 }}>
+                              <IconComp size={15} />
+                              <span>{opt.label}</span>
+                            </div>
+                            {isSelected && (
+                              <CheckCircle2 size={15} color={opt.color} />
+                            )}
+                          </div>
+                          <span style={{ fontSize: 11, color: 'var(--text-secondary, #64748b)', lineHeight: 1.3 }}>{opt.desc}</span>
+                          <span style={{ 
+                            fontSize: 10, 
+                            fontWeight: 700, 
+                            color: opt.color, 
+                            background: isSelected ? '#ffffff' : opt.tagBg, 
+                            padding: '2px 6px', 
+                            borderRadius: 6,
+                            marginTop: 2
+                          }}>
+                            {opt.sla}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
               </div>
             </div>
 

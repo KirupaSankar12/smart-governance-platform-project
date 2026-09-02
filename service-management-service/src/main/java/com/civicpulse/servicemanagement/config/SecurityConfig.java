@@ -47,7 +47,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/services/status/**").hasAnyRole("OFFICER", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/services/type/**").hasAnyRole("OFFICER", "ADMIN")
                 // Any single application view
-                .requestMatchers(HttpMethod.GET, "/api/services/{id}").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/services/{id}").permitAll()
                 // Officer CRUD endpoints
                 .requestMatchers("/api/officers/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

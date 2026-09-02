@@ -442,7 +442,10 @@ function ServiceApplicationForm() {
         relationship: 'Self',
         childName: '',
         fatherName: '',
-        dateOfBirth: ''
+        dateOfBirth: '',
+        deceasedName: '',
+        deceasedRelationship: '',
+        ownerName: parentName || prev.applicantName
       }));
     } else {
       setSelectedFamilyMemberId(member.memberId);
@@ -468,6 +471,9 @@ function ServiceApplicationForm() {
         fatherName: parentName || prev.applicantName,
         aadhaarNumber: member.aadhar || prev.aadhaarNumber,
         phoneNumber: member.phoneNumber || prev.phoneNumber,
+        deceasedName: member.name,
+        deceasedRelationship: parentRel,
+        ownerName: member.name
       }));
     }
   };

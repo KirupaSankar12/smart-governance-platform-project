@@ -585,7 +585,7 @@ function ExportDropdown({ aiData, govData, isDark }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // AI EXECUTIVE BRIEF CARD
 // ─────────────────────────────────────────────────────────────────────────────
-function AiExecutiveBrief({ isDark, aiData, analyzing, aiError, onGenerate, onChat, govData }) {
+function AiExecutiveBrief({ isDark, aiData, analyzing, aiError, onGenerate, govData }) {
   const [expanded, setExpanded] = useState(true);
   const t = th(isDark);
   const sc = aiData && !aiData.aiUnavailable ? STATUS_COLORS[aiData.overallStatus] || STATUS_COLORS.UNAVAILABLE : null;
@@ -628,16 +628,7 @@ function AiExecutiveBrief({ isDark, aiData, analyzing, aiError, onGenerate, onCh
           }}>
             {analyzing ? <><RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} />Analyzing…</> : <><Sparkles size={13} />Generate AI Analysis</>}
           </button>
-          <button id="btn-ask-civicpulse-ai" onClick={onChat} style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 10,
-            border: `1px solid #6366f1`, background: 'transparent', color: '#6366f1',
-            fontWeight: 700, fontSize: 12, cursor: 'pointer', transition: 'all 0.2s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.12)' : '#eef2ff'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >
-            <MessageSquare size={13} />Ask Smart Governance AI
-          </button>
+
           {aiData && !aiData.aiUnavailable && (
             <ExportDropdown aiData={aiData} govData={govData} isDark={isDark} />
           )}
@@ -937,7 +928,7 @@ export default function GovernanceDashboard() {
   const [aiData, setAiData]       = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [aiError, setAiError]     = useState(null);
-  const [chatOpen, setChatOpen]   = useState(false);
+
 
   // Load governance data
   const load = useCallback(() => {
@@ -1025,10 +1016,9 @@ export default function GovernanceDashboard() {
         )}
 
         {/* ── AI Executive Brief ────────────────────────────────────────────── */}
-        <AiChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} isDark={isDark} />
         <AiExecutiveBrief
           isDark={isDark} aiData={aiData} analyzing={analyzing} aiError={aiError}
-          onGenerate={runAiAnalysis} onChat={() => setChatOpen(true)}
+          onGenerate={runAiAnalysis}
           govData={data}
         />
 

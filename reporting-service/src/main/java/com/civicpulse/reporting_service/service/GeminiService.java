@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Calls the Google Gemini REST API (gemini-flash-latest) using Spring's RestClient.
+ * Calls the Google Gemini REST API (gemini-3.6-flash) using Spring's RestClient.
  *
  * SECURITY:
  *  - API key is read from the GEMINI_API_KEY environment variable only.
@@ -36,7 +36,7 @@ public class GeminiService {
     @Value("${gemini.api.key:}")
     private String apiKey;
 
-    @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent}")
+    @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent}")
     private String geminiUrl;
 
     private final RestClient restClient;

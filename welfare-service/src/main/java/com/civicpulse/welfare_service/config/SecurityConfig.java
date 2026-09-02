@@ -36,6 +36,7 @@ public class SecurityConfig {
 
                 // ── Beneficiary Management & Officer Actions ─────────────
                 .requestMatchers(HttpMethod.POST, "/api/welfare/schemes/*/apply").hasAnyRole("CITIZEN", "ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/welfare/beneficiaries/{id}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/welfare/beneficiaries/citizen/**").hasAnyRole("CITIZEN", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/welfare/beneficiaries/department/**").hasAnyRole("OFFICER", "DEPARTMENT_OFFICER", "APPROVER", "AUTHORITY", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/welfare/beneficiaries/pending").hasAnyRole("OFFICER", "DEPARTMENT_OFFICER", "APPROVER", "AUTHORITY", "ADMIN")
