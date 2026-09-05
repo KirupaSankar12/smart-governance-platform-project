@@ -20,4 +20,7 @@ public interface ApplicationRepository extends JpaRepository<ServiceApplication,
 
     // Revenue queries
     List<ServiceApplication> findByFeeCollectedTrue();
+
+    // Public tracker — lookup by human-readable certificate number (e.g. IC-2026-0002)
+    java.util.Optional<ServiceApplication> findByCertificateNumber(String certificateNumber);
 }

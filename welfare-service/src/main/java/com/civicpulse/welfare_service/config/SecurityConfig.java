@@ -37,6 +37,9 @@ public class SecurityConfig {
                 // ── Beneficiary Management & Officer Actions ─────────────
                 .requestMatchers(HttpMethod.POST, "/api/welfare/schemes/*/apply").hasAnyRole("CITIZEN", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/welfare/beneficiaries/{id}").permitAll()
+                // Public tracker — lookup by UUID or BEN-code (no auth required)
+                .requestMatchers(HttpMethod.GET, "/api/welfare/beneficiaries/track/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/welfare/beneficiaries/*/history").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/welfare/beneficiaries/citizen/**").hasAnyRole("CITIZEN", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/welfare/beneficiaries/department/**").hasAnyRole("OFFICER", "DEPARTMENT_OFFICER", "APPROVER", "AUTHORITY", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/welfare/beneficiaries/pending").hasAnyRole("OFFICER", "DEPARTMENT_OFFICER", "APPROVER", "AUTHORITY", "ADMIN")
@@ -51,7 +54,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/welfare/beneficiaries/*/execute-dbt").hasAnyRole("ADMIN", "APPROVER", "FINANCE_OFFICER")
                 .requestMatchers(HttpMethod.POST, "/api/welfare/beneficiaries/*/resubmit-docs").hasAnyRole("CITIZEN", "ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/welfare/beneficiaries/**").authenticated()
-                .requestMatchers(HttpMethod.GET, "/api/welfare/beneficiaries/*/history").authenticated()
 
                 // ── Budget Management ─────────────────────────────────────
                 .requestMatchers(HttpMethod.POST, "/api/welfare/budgets").hasAnyRole("FINANCE_OFFICER", "ADMIN")

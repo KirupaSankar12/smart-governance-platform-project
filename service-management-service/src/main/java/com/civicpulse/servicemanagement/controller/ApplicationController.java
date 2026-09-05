@@ -21,11 +21,14 @@ public class ApplicationController {
 
     private final ApplicationService applicationService;
     private final CertificateService certificateService;
+    private final com.civicpulse.servicemanagement.repository.ApplicationRepository applicationRepository;
 
     public ApplicationController(ApplicationService applicationService,
-                                 CertificateService certificateService) {
+                                 CertificateService certificateService,
+                                 com.civicpulse.servicemanagement.repository.ApplicationRepository applicationRepository) {
         this.applicationService = applicationService;
         this.certificateService = certificateService;
+        this.applicationRepository = applicationRepository;
     }
 
     // ─── CITIZEN ──────────────────────────────────────────────────────────────
@@ -63,6 +66,23 @@ public class ApplicationController {
     public ResponseEntity<ServiceApplication> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(applicationService.getById(id));
     }
+
+    // PUBLIC TRACKER — accepts UUID or certificate number (e.g. IC-2026-0002)
+    @GetMapping("/track/{identifier}")
+    public ResponseEntity<ServiceApplication> trackByIdentifier(@PathVariable String identifier) {
+        // Try to parse as UUID first
+        try {
+            UUID uuid = UUID.fromString(identifier);
+            return ResponseEntity.ok(applicationService.getById(uuid));
+        } catch (IllegalArgumentException ignored) {}
+        // Fall back to certificate number lookup
+        return applicationRepository
+                .findByCertificateNumber(identifier)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+
 
     @GetMapping("/{id}/history")
     public ResponseEntity<List<ApplicationHistory>> getHistory(@PathVariable UUID id) {

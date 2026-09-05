@@ -48,6 +48,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/services/type/**").hasAnyRole("OFFICER", "ADMIN")
                 // Any single application view
                 .requestMatchers(HttpMethod.GET, "/api/services/{id}").permitAll()
+                // Public tracker — lookup by UUID or certificate number (no auth required)
+                .requestMatchers(HttpMethod.GET, "/api/services/track/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/services/*/history").permitAll()
                 // Officer CRUD endpoints
                 .requestMatchers("/api/officers/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

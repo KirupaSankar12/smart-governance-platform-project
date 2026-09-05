@@ -40,4 +40,7 @@ public interface BeneficiaryRepository extends JpaRepository<Beneficiary, UUID> 
 
     @Query("SELECT MAX(CAST(SUBSTRING(b.beneficiaryCode, 10) AS integer)) FROM Beneficiary b WHERE b.beneficiaryCode LIKE CONCAT('BEN-', :year, '-%')")
     Long findMaxSequenceForYear(@Param("year") int year);
+
+    // Public tracker — lookup by human-readable beneficiary code (e.g. BEN-2026-0020)
+    java.util.Optional<Beneficiary> findByBeneficiaryCode(String beneficiaryCode);
 }

@@ -2,6 +2,7 @@ package com.civicpulse.welfare_service.controller;
 
 import com.civicpulse.welfare_service.entity.Beneficiary;
 import com.civicpulse.welfare_service.entity.BeneficiaryHistory;
+import com.civicpulse.welfare_service.repository.BeneficiaryRepository;
 import com.civicpulse.welfare_service.service.BeneficiaryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -17,10 +18,27 @@ import java.util.UUID;
 public class BeneficiaryController {
 
     private final BeneficiaryService beneficiaryService;
+    private final BeneficiaryRepository beneficiaryRepository;
 
-    public BeneficiaryController(BeneficiaryService beneficiaryService) {
+    public BeneficiaryController(BeneficiaryService beneficiaryService, BeneficiaryRepository beneficiaryRepository) {
         this.beneficiaryService = beneficiaryService;
+        this.beneficiaryRepository = beneficiaryRepository;
     }
+
+    // PUBLIC TRACKER — accepts UUID or beneficiary code (e.g. BEN-2026-0020)
+    @GetMapping("/beneficiaries/track/{identifier}")
+    public ResponseEntity<Beneficiary> trackByIdentifier(@PathVariable String identifier) {
+        try {
+            UUID uuid = UUID.fromString(identifier);
+            return beneficiaryRepository.findById(uuid)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException ignored) {}
+        return beneficiaryRepository.findByBeneficiaryCode(identifier)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
 
     // POST /api/welfare/schemes/{schemeId}/apply (Submit Application)
     @PostMapping("/schemes/{schemeId}/apply")
